@@ -1,41 +1,45 @@
 ---
 title: "Presence/absence variation among Rumex xyy male haplotype assemblies and Rumex salicifolius"
-output: html_notebook
+output:
+  rmdformats::html_clean:
+    code_folding: show
+    default_style: light
+    toc_depth: 6
+    fig_caption: yes
 ---
 
 # data cleaning
-The pangenome outputs from genespace are in long format, or a wider format which weird file separation. First attempt will use the long format and a tidy style approach.
-
 Goal: obtain a list of 1-1 syntenic orthologs that are present in hap1 and sal, but not hap2 - as well as the opposite case. Particularly interested in the sex chromosomes.
-```{r echo=TRUE}
+```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(vroom)
 ```
 
 ## raw files
 Load in long-format pangenome databases for each reference
-```{r echo=TRUE}
-hap1raw<-vroom("hap1_pangenomeDB.txt", show_col_types = F)
-hap2raw<-vroom("hap2_pangenomeDB.txt",show_col_types=F)
-salraw<-vroom("salicifolius_pangenomeDB.txt", show_col_types=F)
-colnames(hap1raw)
+```{r echo=TRUE, message=FALSE}
+hap1raw<-vroom("hap1_pangenes.txt", show_col_types = F)
+hap2raw<-vroom("hap2_pangenes.txt",show_col_types=F)
+salraw<-vroom("salicifolius_pangenes.txt", show_col_types=F)
 ```
 What do these column names mean?
 
 colname  |definition
 ---------|------
-pgChr    |pangenome chromosome (relative to reference)
-pgOrd    |gene rank order
-pgID     |unique id for each entry
-og       |orthogroup (as defined by orthofinder)
-ofID     |orthofinder ID
-isRep    |??
-genome   |genome that gene is found in
-isDirectSyn| is syntenic?
-isSynOfOnly| is syntenic ortholog only?
-isNSOrtho|is nonsyntenic ortholog
-id| geneID in gff
+ofID | orthofinder-given unique gene ID
+pgID | the unique position-by-orthogroup combination identifier. Each row in the pangenome-annotation is a unique value of this field
+interpChr |  the chromosome (syntenic or actual) on the reference genome
+interpOrd     | the gene-rank order position (interpolated or actual) on the reference genome
+pgRepID     | the ofID for the representative gene for each pgID
+genome    | genome of the focal gene (id column)
+og   | orthogroup ID taken from the combBed.txt file
+flag| specifies whether the gene is a syntenic ortholog (‘PASS’), non-syntenic ortholog, or array member.
+id| bed-specified gene ID 
+chr| chromosome
+start| start pos
+end | end pos
+ord | gene rank order
 
-hap1syn
+### what do I need to do?
 
-## record scratch
+
