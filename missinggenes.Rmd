@@ -41,5 +41,38 @@ end | end pos
 ord | gene rank order
 
 ### what do I need to do?
+```{r}
+hap1syn<- hap1raw %>% dplyr::filter(flag=="PASS")
+hap2syn<-hap2raw %>% dplyr::filter(flag=="PASS")
+salsyn<-salraw %>% dplyr::filter(flag=="PASS")
+```
+Determine which genes are present in haplotype 1 and present or absent in haplotype 2
+Determine which genes are present in haplotype 2 and not presetn in absent in haplotype 1
+Determine which genes are not shared by sal and the other two, or are only shared between sal and one or the other. 
+### what will the data look like
+Here I'm envisioning a table of shared positions and gene names (column separated by species. I can include a flag indication which don't have a syntenic ortholog. 
+simplest candidate for Y gene loss: single copy syntenic hap1 and sal but not in hap2.
+What is my ultimate question? 
+Is there gene loss on Y? neo Y? 
+### Gene loss on Y
+#### Synenic genes
+Obtain a list of genes shared by hap1, sal, but NOT hap2
+```{r}
+## to keep and combine
+df1<- hap1syn %>% dplyr::filter(genome == "salicifolius")
+dfsal<- salsyn %>% dplyr::filter(genome == "hap1")
+## to exclude and eliminate from the list
+df1ex<- hap1syn %>% dplyr::filter(genome == "hap2")
+dfsalex<-salsyn %>% dplyr::filter(genome == "hap2")
+```
+
+
+
+
+
+
+
+
+
 
 
