@@ -55,24 +55,37 @@ simplest candidate for Y gene loss: single copy syntenic hap1 and sal but not in
 What is my ultimate question? 
 Is there gene loss on Y? neo Y? 
 ### Gene loss on Y
-#### Synenic genes
+
+#### Syntenic genes
 Obtain a list of genes shared by hap1, sal, but NOT hap2
+
+
+##### bad attempt?
 ```{r}
 ## to keep and combine
-df1<- hap1syn %>% dplyr::filter(genome == "salicifolius")
-dfsal<- salsyn %>% dplyr::filter(genome == "hap1")
-## to exclude and eliminate from the list
-df1ex<- hap1syn %>% dplyr::filter(genome == "hap2")
-dfsalex<-salsyn %>% dplyr::filter(genome == "hap2")
+library(tidyr)
+spec1<- tibble(.name=c("hap1","hap2","salicifolius"),
+               .value=c(""))
+wide_data_hap1 <- pivot_wider(hap1syn, names_from = genome, values_from = pgID, 
+                         names_prefix = "is", values_fill = list(pgID = FALSE))
+
+rm(pg)
+
+for i in pgID
+
+(tidyr)
+
+
+
+
+bool_hap1<- hap1syn %>% mutate(isHap1=ifelse(genome%in%"hap1",TRUE, FALSE)) %>%
+  mutate(isHap2=ifelse(genome%in%"hap2",TRUE,FALSE)) %>%  mutate(isSal=ifelse(genome%in%"salicifolius",TRUE,FALSE))
+
+wide_df <- bool_hap1 %>% pivot_wider(names_from = genome, values_from = id)
+
+MissingInHap2<-bool_hap1 %>% group_by(pgID) %>% filter(isHap1 == TRUE&isHap2==FALSE)
+SharedInHap2<- bool_hap1 %>% group_by(pgID) %>% filter(isHap1 == TRUE&isHap2==TRUE)
+
+
+groupedtest<- hap1syn %>% group_by(pgID) %>% summarise(hasHap1=ifelse(genome%in%"hap1",TRUE, FALSE)) %>%   summarise(hap1syn,hasHap2=ifelse(genome%in%"hap2",TRUE, FALSE))
 ```
-
-
-
-
-
-
-
-
-
-
-
