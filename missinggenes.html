@@ -1094,14 +1094,93 @@ table of shared positions and gene names (column separated by species. I
 can include a flag indication which don’t have a syntenic ortholog.
 simplest candidate for Y gene loss: single copy syntenic hap1 and sal
 but not in hap2. What is my ultimate question? Is there gene loss on Y?
-neo Y? ### Gene loss on Y #### Synenic genes Obtain a list of genes
-shared by hap1, sal, but NOT hap2</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="do">## to keep and combine</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df1<span class="ot">&lt;-</span> hap1syn <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;salicifolius&quot;</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>dfsal<span class="ot">&lt;-</span> salsyn <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap1&quot;</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="do">## to exclude and eliminate from the list</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>df1ex<span class="ot">&lt;-</span> hap1syn <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap2&quot;</span>)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>dfsalex<span class="ot">&lt;-</span>salsyn <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap2&quot;</span>)</span></code></pre></div>
+neo Y? ### Gene loss on Y</p>
+<div id="remove-dups-and-combine-to-complete-list" class="section level4">
+<h4>remove dups and combine to complete list</h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>hap1nodups_a<span class="ot">&lt;-</span>hap1syn <span class="sc">%&gt;%</span> <span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap1&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>hap1nodups_b<span class="ot">&lt;-</span> hap2syn <span class="sc">%&gt;%</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap1&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>hap1nodups_c<span class="ot">&lt;-</span>salsyn <span class="sc">%&gt;%</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap1&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>hap1nodups<span class="ot">&lt;-</span><span class="fu">union</span>(hap1nodups_a,hap1nodups_b) </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>hap1nodups<span class="ot">&lt;-</span><span class="fu">union</span>(hap1nodups,hap1nodups_c) </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>hap2nodups_a<span class="ot">&lt;-</span>hap1syn <span class="sc">%&gt;%</span> <span class="fu">filter</span>(genome<span class="sc">==</span><span class="st">&quot;hap2&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>hap2nodups_b<span class="ot">&lt;-</span>hap2syn <span class="sc">%&gt;%</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap2&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>hap2nodups_c<span class="ot">&lt;-</span>salsyn <span class="sc">%&gt;%</span><span class="fu">filter</span>(genome <span class="sc">==</span> <span class="st">&quot;hap2&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>hap2nodups<span class="ot">&lt;-</span><span class="fu">union</span>(hap2nodups_a,hap2nodups_b) </span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>hap2nodups<span class="ot">&lt;-</span><span class="fu">union</span>(hap2nodups,hap2nodups_c)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>salnodups_a<span class="ot">&lt;-</span>hap1syn <span class="sc">%&gt;%</span> <span class="fu">filter</span>(genome<span class="sc">==</span><span class="st">&quot;salicifolius&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>salnodups_b<span class="ot">&lt;-</span>hap2syn <span class="sc">%&gt;%</span> <span class="fu">filter</span>(genome<span class="sc">==</span><span class="st">&quot;salicifolius&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>salnodups_c<span class="ot">&lt;-</span>salsyn <span class="sc">%&gt;%</span> <span class="fu">filter</span>(genome<span class="sc">==</span><span class="st">&quot;salicifolius&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(pgID,<span class="at">.keep_all=</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(id)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>salnodups<span class="ot">&lt;-</span><span class="fu">union</span>(salnodups_a,salnodups_b) </span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>salnodups<span class="ot">&lt;-</span><span class="fu">union</span>(salnodups,salnodups_c)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="do">###</span></span></code></pre></div>
+</div>
+<div id="syntenic-genes" class="section level4">
+<h4>Syntenic genes</h4>
+<p>Obtain a list of genes shared by hap1, sal, but NOT hap2</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">## remove dups and get into wide format</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hap1pg<span class="ot">&lt;-</span>hap1syn <span class="sc">%&gt;%</span><span class="fu">select</span>(pgID,genome,id) <span class="sc">%&gt;%</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>((id<span class="sc">%in%</span>salnodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap2nodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap1nodups<span class="sc">$</span>id)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from=</span>genome, <span class="at">values_from=</span>id,<span class="at">values_fn=</span>list) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_all</span>( <span class="sc">~</span><span class="fu">replace</span>(., <span class="fu">lengths</span>(.)<span class="sc">==</span><span class="dv">0</span>, <span class="cn">NA</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>hap2pg <span class="ot">&lt;-</span>hap2syn <span class="sc">%&gt;%</span><span class="fu">select</span>(pgID,genome,id) <span class="sc">%&gt;%</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>((id<span class="sc">%in%</span>salnodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap2nodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap1nodups<span class="sc">$</span>id)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from=</span>genome, <span class="at">values_from=</span>id,<span class="at">values_fn=</span>list) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_all</span>( <span class="sc">~</span><span class="fu">replace</span>(., <span class="fu">lengths</span>(.)<span class="sc">==</span><span class="dv">0</span>, <span class="cn">NA</span>))</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>salpg<span class="ot">&lt;-</span> salsyn <span class="sc">%&gt;%</span><span class="fu">select</span>(pgID,genome,id) <span class="sc">%&gt;%</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>((id<span class="sc">%in%</span>salnodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap2nodups<span class="sc">$</span>id <span class="sc">|</span> id<span class="sc">%in%</span>hap1nodups<span class="sc">$</span>id)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from=</span>genome, <span class="at">values_from=</span>id,<span class="at">values_fn=</span>list) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_all</span>( <span class="sc">~</span><span class="fu">replace</span>(., <span class="fu">lengths</span>(.)<span class="sc">==</span><span class="dv">0</span>, <span class="cn">NA</span>))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>df1<span class="ot">&lt;-</span>hap1pg <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(hap1) <span class="sc">&amp;</span> <span class="fu">is.na</span>(hap2) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(salicifolius)) <span class="sc">%&gt;%</span> <span class="fu">select</span>(hap1)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>df2<span class="ot">&lt;-</span>hap2pg <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(hap1) <span class="sc">&amp;</span> <span class="fu">is.na</span>(hap2) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(salicifolius)) <span class="sc">%&gt;%</span> <span class="fu">select</span>(hap1)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>df3<span class="ot">&lt;-</span>salpg <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(hap1) <span class="sc">&amp;</span> <span class="fu">is.na</span>(hap2) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(salicifolius)) <span class="sc">%&gt;%</span> <span class="fu">select</span>(hap1)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="do">## combined list</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>all_nohap2<span class="ot">&lt;-</span><span class="fu">intersect</span>(df1,df2)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>all_nohap2<span class="ot">&lt;-</span><span class="fu">intersect</span>(all_nohap2,df3)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="do">## THESE ARE THE GENES W SAL AND HAP1 BUT NO HAP2 equivs</span></span></code></pre></div>
+</div>
+<div id="connect-to-positions" class="section level4">
+<h4>connect to positions</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>all_nohap2<span class="sc">$</span>hap1<span class="ot">&lt;-</span> <span class="fu">as.character</span>(all_nohap2<span class="sc">$</span>hap1)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>all_nohap2</span></code></pre></div>
+<pre><code>## # A tibble: 1,333 × 1
+##    hap1                 
+##    &lt;chr&gt;                
+##  1 NChap1_final_00000006
+##  2 NChap1_final_00000011
+##  3 NChap1_final_00000012
+##  4 NChap1_final_00000014
+##  5 NChap1_final_00000030
+##  6 NChap1_final_00000032
+##  7 NChap1_final_00000040
+##  8 NChap1_final_00000056
+##  9 NChap1_final_00000059
+## 10 NChap1_final_00000082
+## # … with 1,323 more rows</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>hap1syn</span></code></pre></div>
+<pre><code>## # A tibble: 92,066 × 13
+##    ofID     pgID interpChr inter…¹ pgRepID genome    og flag  id    chr    start
+##    &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;  &lt;dbl&gt;
+##  1 0_41        1 X               1 0_41    hap1   29209 PASS  NCha… X     2.29e4
+##  2 0_46        2 X               3 0_46    hap1   29462 PASS  NCha… X     2.00e5
+##  3 0_43        3 X               4 0_43    hap1   14439 PASS  NCha… X     4.03e5
+##  4 2_19904     3 X               4 0_43    salic… 14439 PASS  R_sa… ScaO… 1.37e5
+##  5 1_22202     3 X               4 0_43    hap2   14439 PASS  NCha… Y1    3.43e8
+##  6 0_47        4 X               5 0_47    hap1   14570 PASS  NCha… X     4.71e5
+##  7 2_19913     4 X               5 0_47    salic… 14570 PASS  R_sa… ScaO… 1.44e5
+##  8 1_22201     4 X               5 0_47    hap2   14570 PASS  NCha… Y1    3.43e8
+##  9 0_44        5 X               6 0_44    hap1   17887 PASS  NCha… X     4.79e5
+## 10 2_19905     5 X               6 0_44    salic… 17887 PASS  R_sa… ScaO… 1.53e5
+## # … with 92,056 more rows, 2 more variables: end &lt;dbl&gt;, ord &lt;dbl&gt;, and
+## #   abbreviated variable name ¹​interpOrd</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>anno_pg<span class="ot">&lt;-</span><span class="fu">inner_join</span>(all_nohap2,hap1syn, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;hap1&quot;</span><span class="ot">=</span><span class="st">&quot;id&quot;</span>))</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(anno_pg, <span class="st">&quot;hap1sal_nohap2.csv&quot;</span>)</span></code></pre></div>
+</div>
+<div id="plotting-or" class="section level4">
+<h4>plotting? or…</h4>
+</div>
 </div>
 </div>
 </div>
@@ -1119,7 +1198,16 @@ shared by hap1, sal, but NOT hap2</p>
        <ul>
        <li><a href="#raw-files" id="toc-raw-files">raw files</a>
        <ul>
-       <li><a href="#what-do-i-need-to-do" id="toc-what-do-i-need-to-do">what do I need to do?</a></li>
+       <li><a href="#what-do-i-need-to-do" id="toc-what-do-i-need-to-do">what do I need to do?</a>
+       <ul>
+       <li><a href="#remove-dups-and-combine-to-complete-list" id="toc-remove-dups-and-combine-to-complete-list">remove dups and
+       combine to complete list</a></li>
+       <li><a href="#syntenic-genes" id="toc-syntenic-genes">Syntenic
+       genes</a></li>
+       <li><a href="#connect-to-positions" id="toc-connect-to-positions">connect to positions</a></li>
+       <li><a href="#plotting-or" id="toc-plotting-or">plotting?
+       or…</a></li>
+       </ul></li>
        </ul></li>
        </ul></li>
        </ul>

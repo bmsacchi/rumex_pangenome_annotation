@@ -56,36 +56,60 @@ What is my ultimate question?
 Is there gene loss on Y? neo Y? 
 ### Gene loss on Y
 
+#### remove dups and combine to complete list
+```{r}
+hap1nodups_a<-hap1syn %>% filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap1nodups_b<- hap2syn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap1nodups_c<-salsyn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap1nodups<-union(hap1nodups_a,hap1nodups_b) 
+hap1nodups<-union(hap1nodups,hap1nodups_c) 
+##
+hap2nodups_a<-hap1syn %>% filter(genome=="hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap2nodups_b<-hap2syn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap2nodups_c<-salsyn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+hap2nodups<-union(hap2nodups_a,hap2nodups_b) 
+hap2nodups<-union(hap2nodups,hap2nodups_c)
+##
+salnodups_a<-hap1syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+salnodups_b<-hap2syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+salnodups_c<-salsyn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+salnodups<-union(salnodups_a,salnodups_b) 
+salnodups<-union(salnodups,salnodups_c)
+###
+```
+
+
 #### Syntenic genes
 Obtain a list of genes shared by hap1, sal, but NOT hap2
-
-
-##### bad attempt?
 ```{r}
-## to keep and combine
-library(tidyr)
-spec1<- tibble(.name=c("hap1","hap2","salicifolius"),
-               .value=c(""))
-wide_data_hap1 <- pivot_wider(hap1syn, names_from = genome, values_from = pgID, 
-                         names_prefix = "is", values_fill = list(pgID = FALSE))
-
-rm(pg)
-
-for i in pgID
-
-(tidyr)
-
-
-
-
-bool_hap1<- hap1syn %>% mutate(isHap1=ifelse(genome%in%"hap1",TRUE, FALSE)) %>%
-  mutate(isHap2=ifelse(genome%in%"hap2",TRUE,FALSE)) %>%  mutate(isSal=ifelse(genome%in%"salicifolius",TRUE,FALSE))
-
-wide_df <- bool_hap1 %>% pivot_wider(names_from = genome, values_from = id)
-
-MissingInHap2<-bool_hap1 %>% group_by(pgID) %>% filter(isHap1 == TRUE&isHap2==FALSE)
-SharedInHap2<- bool_hap1 %>% group_by(pgID) %>% filter(isHap1 == TRUE&isHap2==TRUE)
-
-
-groupedtest<- hap1syn %>% group_by(pgID) %>% summarise(hasHap1=ifelse(genome%in%"hap1",TRUE, FALSE)) %>%   summarise(hap1syn,hasHap2=ifelse(genome%in%"hap2",TRUE, FALSE))
+## remove dups and get into wide format
+hap1pg<-hap1syn %>%select(pgID,genome,id) %>%
+  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
+  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
+  mutate_all( ~replace(., lengths(.)==0, NA))
+hap2pg <-hap2syn %>%select(pgID,genome,id) %>%
+  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
+  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
+  mutate_all( ~replace(., lengths(.)==0, NA))
+salpg<- salsyn %>%select(pgID,genome,id) %>%
+  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
+  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
+  mutate_all( ~replace(., lengths(.)==0, NA))
+##
+df1<-hap1pg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
+df2<-hap2pg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
+df3<-salpg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
+## combined list
+all_nohap2<-intersect(df1,df2)
+all_nohap2<-intersect(all_nohap2,df3)
+## THESE ARE THE GENES W SAL AND HAP1 BUT NO HAP2 equivs
 ```
+#### connect to positions
+```{r}
+all_nohap2$hap1<- as.character(all_nohap2$hap1)
+all_nohap2
+hap1syn
+anno_pg<-inner_join(all_nohap2,hap1syn, by=c("hap1"="id"))
+write.csv(anno_pg, "hap1sal_nohap2.csv")
+```
+#### plotting? or...
