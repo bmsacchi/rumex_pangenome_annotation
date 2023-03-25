@@ -1,5 +1,5 @@
 ---
-title: "Presence/absence variation among Rumex xyy male haplotype assemblies and Rumex salicifolius"
+title: "Single-copy genes missing and present from Rumex xyy male haplotype assemblies and Rumex salicifolius"
 output:
   rmdformats::html_clean:
     code_folding: show
@@ -54,7 +54,7 @@ Here I'm envisioning a table of shared positions and gene names (column separate
 simplest candidate for Y gene loss: single copy syntenic hap1 and sal but not in hap2.
 What is my ultimate question? 
 Is there gene loss on Y? neo Y? 
-### Gene loss on Y
+### Gene loss on Y - Data wrangling
 
 #### remove dups and combine to complete list
 ```{r}
@@ -107,9 +107,39 @@ all_nohap2<-intersect(all_nohap2,df3)
 #### connect to positions
 ```{r}
 all_nohap2$hap1<- as.character(all_nohap2$hap1)
-all_nohap2
-hap1syn
 anno_pg<-inner_join(all_nohap2,hap1syn, by=c("hap1"="id"))
-write.csv(anno_pg, "hap1sal_nohap2.csv")
+#write.csv(anno_pg, "hap1sal_nohap2.csv")
 ```
-#### plotting? or...
+### Summary of gene list
+
+#### which genes are absent from hap2?
+```{r}
+a<-anno_pg %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+
+b<-hap1syn %>% group_by(interpChr) %>% summarise(n=n()) %>%
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+## proportion
+chrpropn<-full_join(b,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
+  mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
+## denominator might be off?
+```
+#### PARs and old and new sex-linked regions?
+```{r}
+
+```
+
+
+
+#### plotting
+```{r}
+#library(ggbio)
+library(GenomicRanges)
+library(GenomicFeatures)
+library(rtracklayer)
+library(tidyverse)
+bedanno<-import("hap1.bed")
+head(bedanno)
+
+```
+

@@ -7,7 +7,7 @@
 
     
     
-    <title>Presence/absence variation among Rumex xyy male haplotype assemblies and Rumex salicifolius</title>
+    <title>Single-copy genes missing and present from Rumex xyy male haplotype assemblies and Rumex salicifolius</title>
 
         <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -986,8 +986,8 @@ margin-left: 0 !important;
    </div>
    
         
-      <h1 class="title">Presence/absence variation among Rumex xyy male
-haplotype assemblies and Rumex salicifolius</h1>
+      <h1 class="title">Single-copy genes missing and present from Rumex
+xyy male haplotype assemblies and Rumex salicifolius</h1>
       
         
 
@@ -1144,39 +1144,8 @@ neo Y? ### Gene loss on Y</p>
 <div id="connect-to-positions" class="section level4">
 <h4>connect to positions</h4>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>all_nohap2<span class="sc">$</span>hap1<span class="ot">&lt;-</span> <span class="fu">as.character</span>(all_nohap2<span class="sc">$</span>hap1)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>all_nohap2</span></code></pre></div>
-<pre><code>## # A tibble: 1,333 × 1
-##    hap1                 
-##    &lt;chr&gt;                
-##  1 NChap1_final_00000006
-##  2 NChap1_final_00000011
-##  3 NChap1_final_00000012
-##  4 NChap1_final_00000014
-##  5 NChap1_final_00000030
-##  6 NChap1_final_00000032
-##  7 NChap1_final_00000040
-##  8 NChap1_final_00000056
-##  9 NChap1_final_00000059
-## 10 NChap1_final_00000082
-## # … with 1,323 more rows</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>hap1syn</span></code></pre></div>
-<pre><code>## # A tibble: 92,066 × 13
-##    ofID     pgID interpChr inter…¹ pgRepID genome    og flag  id    chr    start
-##    &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;  &lt;dbl&gt;
-##  1 0_41        1 X               1 0_41    hap1   29209 PASS  NCha… X     2.29e4
-##  2 0_46        2 X               3 0_46    hap1   29462 PASS  NCha… X     2.00e5
-##  3 0_43        3 X               4 0_43    hap1   14439 PASS  NCha… X     4.03e5
-##  4 2_19904     3 X               4 0_43    salic… 14439 PASS  R_sa… ScaO… 1.37e5
-##  5 1_22202     3 X               4 0_43    hap2   14439 PASS  NCha… Y1    3.43e8
-##  6 0_47        4 X               5 0_47    hap1   14570 PASS  NCha… X     4.71e5
-##  7 2_19913     4 X               5 0_47    salic… 14570 PASS  R_sa… ScaO… 1.44e5
-##  8 1_22201     4 X               5 0_47    hap2   14570 PASS  NCha… Y1    3.43e8
-##  9 0_44        5 X               6 0_44    hap1   17887 PASS  NCha… X     4.79e5
-## 10 2_19905     5 X               6 0_44    salic… 17887 PASS  R_sa… ScaO… 1.53e5
-## # … with 92,056 more rows, 2 more variables: end &lt;dbl&gt;, ord &lt;dbl&gt;, and
-## #   abbreviated variable name ¹​interpOrd</code></pre>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>anno_pg<span class="ot">&lt;-</span><span class="fu">inner_join</span>(all_nohap2,hap1syn, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;hap1&quot;</span><span class="ot">=</span><span class="st">&quot;id&quot;</span>))</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(anno_pg, <span class="st">&quot;hap1sal_nohap2.csv&quot;</span>)</span></code></pre></div>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>anno_pg<span class="ot">&lt;-</span><span class="fu">inner_join</span>(all_nohap2,hap1syn, <span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;hap1&quot;</span><span class="ot">=</span><span class="st">&quot;id&quot;</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#write.csv(anno_pg, &quot;hap1sal_nohap2.csv&quot;)</span></span></code></pre></div>
 </div>
 <div id="plotting-or" class="section level4">
 <h4>plotting? or…</h4>
