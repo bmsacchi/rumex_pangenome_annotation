@@ -1200,14 +1200,18 @@ shared with Salicifolius but NOT hap2?</p>
 <span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">if_else</span>(interpChr<span class="sc">==</span><span class="st">&quot;A1&quot;</span>,<span class="st">&quot;A1&quot;</span>,</span>
 <span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">if_else</span>(interpChr<span class="sc">==</span><span class="st">&quot;A2&quot;</span>,<span class="st">&quot;A2&quot;</span>,</span>
 <span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">if_else</span>(interpChr<span class="sc">==</span><span class="st">&quot;A4&quot;</span>,<span class="st">&quot;A4&quot;</span>,<span class="cn">NA</span>))))))))</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>c<span class="ot">&lt;-</span>bedfix <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(region) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">n=</span><span class="fu">n</span>())  <span class="sc">%&gt;%</span></span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(region))</span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>chrpropnPAR<span class="ot">&lt;-</span><span class="fu">full_join</span>(c,a,<span class="at">by=</span><span class="st">&quot;region&quot;</span>,<span class="at">suffix=</span><span class="fu">c</span>(<span class="st">&quot;.total&quot;</span>,<span class="st">&quot;.notonhap2&quot;</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(., <span class="at">propn=</span>n.notonhap2<span class="sc">/</span>n.total) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(.,<span class="at">percent =</span> propn<span class="sc">*</span><span class="dv">100</span>)</span></code></pre></div>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>c<span class="ot">&lt;-</span>bedfix <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(region) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">n=</span><span class="fu">n</span>())  <span class="sc">%&gt;%</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(region))</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="do">## keep only non dup genes</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>b<span class="ot">&lt;-</span>bedfix<span class="sc">%&gt;%</span> <span class="fu">filter</span>(X4<span class="sc">%in%</span>hap1nodups<span class="sc">$</span>id) <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(region) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">n=</span><span class="fu">n</span>())  <span class="sc">%&gt;%</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(region))</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>chrpropnPAR<span class="ot">&lt;-</span><span class="fu">full_join</span>(b,a,<span class="at">by=</span><span class="st">&quot;region&quot;</span>,<span class="at">suffix=</span><span class="fu">c</span>(<span class="st">&quot;.total&quot;</span>,<span class="st">&quot;.notonhap2&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(., <span class="at">propn=</span>n.notonhap2<span class="sc">/</span>n.total) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(.,<span class="at">percent =</span> propn<span class="sc">*</span><span class="dv">100</span>)</span></code></pre></div>
 </div>
 <div id="results-so-far" class="section level4">
 <h4>results so far</h4>
+<p>genes missing from hap2</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(chrpropnPAR)</span></code></pre></div>
 <table>
@@ -1223,52 +1227,52 @@ shared with Salicifolius but NOT hap2?</p>
 <tbody>
 <tr class="odd">
 <td align="left">A1</td>
-<td align="right">9990</td>
+<td align="right">9060</td>
 <td align="right">216</td>
-<td align="right">0.0216216</td>
-<td align="right">2.162162</td>
+<td align="right">0.0238411</td>
+<td align="right">2.384106</td>
 </tr>
 <tr class="even">
 <td align="left">A2</td>
-<td align="right">9073</td>
+<td align="right">8317</td>
 <td align="right">232</td>
-<td align="right">0.0255704</td>
-<td align="right">2.557037</td>
+<td align="right">0.0278947</td>
+<td align="right">2.789467</td>
 </tr>
 <tr class="odd">
 <td align="left">A4</td>
-<td align="right">4619</td>
+<td align="right">4245</td>
 <td align="right">139</td>
-<td align="right">0.0300931</td>
-<td align="right">3.009309</td>
+<td align="right">0.0327444</td>
+<td align="right">3.274440</td>
 </tr>
 <tr class="even">
 <td align="left">NewX</td>
-<td align="right">1307</td>
+<td align="right">1169</td>
 <td align="right">20</td>
-<td align="right">0.0153022</td>
-<td align="right">1.530222</td>
+<td align="right">0.0171086</td>
+<td align="right">1.710864</td>
 </tr>
 <tr class="odd">
 <td align="left">OldX</td>
-<td align="right">3843</td>
+<td align="right">3444</td>
 <td align="right">535</td>
-<td align="right">0.1392142</td>
-<td align="right">13.921416</td>
+<td align="right">0.1553426</td>
+<td align="right">15.534263</td>
 </tr>
 <tr class="even">
 <td align="left">PAR1</td>
-<td align="right">2580</td>
+<td align="right">2345</td>
 <td align="right">85</td>
-<td align="right">0.0329457</td>
-<td align="right">3.294574</td>
+<td align="right">0.0362473</td>
+<td align="right">3.624734</td>
 </tr>
 <tr class="odd">
 <td align="left">PAR2</td>
-<td align="right">3914</td>
+<td align="right">3598</td>
 <td align="right">105</td>
-<td align="right">0.0268268</td>
-<td align="right">2.682678</td>
+<td align="right">0.0291829</td>
+<td align="right">2.918288</td>
 </tr>
 </tbody>
 </table>

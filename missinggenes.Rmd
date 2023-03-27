@@ -156,9 +156,10 @@ bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
 
 c<-bedfix %>% group_by(region) %>% summarise(n=n())  %>%
   filter(!is.na(region))
-b<-bedfix%>% filter("X4")
-
-chrpropnPAR<-full_join(c,a,by="region",suffix=c(".total",".notonhap2")) %>% 
+## keep only non dup genes
+b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
+  filter(!is.na(region))
+chrpropnPAR<-full_join(b,a,by="region",suffix=c(".total",".notonhap2")) %>% 
   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
 ```
 #### results so far
@@ -182,8 +183,5 @@ head(bedanno)
 
 ```
 
-```{python}
-## idk what im doing here
-from i
-```
+
 
