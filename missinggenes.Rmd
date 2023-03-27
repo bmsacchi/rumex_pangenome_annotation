@@ -112,21 +112,60 @@ anno_pg<-inner_join(all_nohap2,hap1syn, by=c("hap1"="id"))
 ```
 ### Summary of gene list
 
-#### which genes are absent from hap2?
+#### summarising number of genes
 ```{r}
 a<-anno_pg %>% group_by(interpChr) %>% summarise(n=n()) %>% 
   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
 
-b<-hap1syn %>% group_by(interpChr) %>% summarise(n=n()) %>%
+b<-hap1raw %>% filter(genome=="hap1") %>% group_by(interpChr) %>% summarise(n=n()) %>%
   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-## proportion
-chrpropn<-full_join(b,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
+# b<-hap1pg %>% filter(!is.na(hap1)) %>% group_by(interpChr) %>% summarise(n=n()) %>%
+#   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+## ok what about the counts from the og bed file
+bedbedbed<-vroom("hap1.bed", col_names = F)
+c<-bedbedbed %>% rename(interpChr=X1) %>% group_by(.,interpChr) %>% summarise(n=n())  %>%
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+```
+#### How many genes are missing from theX compared to other chr?
+What proportion of genes (wrt hap1 bed file) have a syntenic ortholog shared with Salicifolius but NOT hap2?
+```{r proportion}
+chrpropn<-full_join(c,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
 ## denominator might be off?
 ```
 #### PARs and old and new sex-linked regions?
 ```{r}
+anno_par <- anno_pg %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+a<-anno_par %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
 
+bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
+  mutate(.,region=if_else(interpChr =="X" &end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+
+c<-bedfix %>% group_by(region) %>% summarise(n=n())  %>%
+  filter(!is.na(region))
+b<-bedfix%>% filter("X4")
+
+chrpropnPAR<-full_join(c,a,by="region",suffix=c(".total",".notonhap2")) %>% 
+  mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
+```
+#### results so far
+genes missing from hap2 
+```{r}
+library(knitr)
+kable(chrpropnPAR)
 ```
 
 
@@ -141,5 +180,10 @@ library(tidyverse)
 bedanno<-import("hap1.bed")
 head(bedanno)
 
+```
+
+```{python}
+## idk what im doing here
+from i
 ```
 
