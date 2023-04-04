@@ -8,21 +8,26 @@ output:
     fig_caption: yes
 ---
 
-# data cleaning
+### data cleaning
 Goal: obtain a list of 1-1 syntenic orthologs that are present in hap1 and sal, but not hap2 - as well as the opposite case. Particularly interested in the sex chromosomes.
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(vroom)
+library(GENESPACE)
+setwd("~/Dropbox/rumex_pangenome_annotation")
 ```
 
-## raw files
+#### raw files
 Load in long-format pangenome databases for each reference
 ```{r echo=TRUE, message=FALSE}
 hap1raw<-vroom("hap1_pangenes.txt", show_col_types = F)
+bed1<-vroom("hap1.bed", col_names = F)
+
+queryhap1<-query_pangenes(hap1raw,bed1)
 hap2raw<-vroom("hap2_pangenes.txt",show_col_types=F)
 salraw<-vroom("salicifolius_pangenes.txt", show_col_types=F)
 ```
-What do these column names mean?
+#### pangenome file format
 
 colname  |definition
 ---------|------
@@ -40,41 +45,66 @@ start| start pos
 end | end pos
 ord | gene rank order
 
-### what do I need to do?
+
+### loading in wide-format
+from query_pangenes()
 ```{r}
-hap1syn<- hap1raw %>% dplyr::filter(flag=="PASS")
-hap2syn<-hap2raw %>% dplyr::filter(flag=="PASS")
-salsyn<-salraw %>% dplyr::filter(flag=="PASS")
+hap1_wide<-data.table::fread("pg_hap1_wide.txt")
+#h1_wide_noNS<- hap1_wide %>% filter(str_detect(hap1,"\\*", negate=TRUE)) %>%
+ # filter(str_detect(hap2,"\\*", negate=TRUE)) %>% 
+#  filter(str_detect(salicifolius,"\\*", negate=TRUE))
+h1_wide_noNS<- hap1_wide %>% filter_all(all_vars(str_detect(.,"\\*|\\+", negate=TRUE)))
+# getting rid of ns orthos and arrays
+#about 17,000 entries gone
+```
+
+### filtering
+Filtering out any pgIDs that include non-syntenic orthogroups
+```{r}
+hap1filt<- hap1raw %>% group_by(pgID) %>% 
+  filter(all(flag!="NSOrtho")) %>% filter(all(flag!="array")) 
+a<-hap1filt %>% group_by(pgID) %>% summarise(n()) #%>% length()
+
+nachr<-hap1raw %>% filter(is.na(interpChr))
+#pgID with many man yman yentires has NA value at interpChr
+# hap1syn<- hap1raw %>% dplyr::filter(flag=="PASS")
+# hap2syn<-hap2raw %>% dplyr::filter(flag=="PASS")
+# salsyn<-salraw %>% dplyr::filter(flag=="PASS")
+
+# pgIDs_hap1_ns <- hap1raw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
+# pgIDs_hap2_ns <- hap2raw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
+# pgIDs_sal_ns <- salraw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
+# pgIDs_all<-full_join(pgIDs_hap1_ns,pgIDs_hap2_ns, by="id")
+# pgIDs_all<-full_join(pgIDs_all, pgIDs_sal_ns, by="id")
+
+### try with group_by
+
 ```
 Determine which genes are present in haplotype 1 and present or absent in haplotype 2
-Determine which genes are present in haplotype 2 and not presetn in absent in haplotype 1
+Determine which genes are present in haplotype 2 and not present in absent in haplotype 1
 Determine which genes are not shared by sal and the other two, or are only shared between sal and one or the other. 
-### what will the data look like
-Here I'm envisioning a table of shared positions and gene names (column separated by species. I can include a flag indication which don't have a syntenic ortholog. 
-simplest candidate for Y gene loss: single copy syntenic hap1 and sal but not in hap2.
-What is my ultimate question? 
-Is there gene loss on Y? neo Y? 
-### Gene loss on Y - Data wrangling
 
-#### remove dups and combine to complete list
+### Gene loss on Y 
+
 ```{r}
-hap1nodups_a<-hap1syn %>% filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap1nodups_b<- hap2syn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap1nodups_c<-salsyn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap1nodups<-union(hap1nodups_a,hap1nodups_b) 
-hap1nodups<-union(hap1nodups,hap1nodups_c) 
-##
-hap2nodups_a<-hap1syn %>% filter(genome=="hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap2nodups_b<-hap2syn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap2nodups_c<-salsyn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-hap2nodups<-union(hap2nodups_a,hap2nodups_b) 
-hap2nodups<-union(hap2nodups,hap2nodups_c)
-##
-salnodups_a<-hap1syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-salnodups_b<-hap2syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-salnodups_c<-salsyn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-salnodups<-union(salnodups_a,salnodups_b) 
-salnodups<-union(salnodups,salnodups_c)
+# removing dups - no longer doing this
+# hap1nodups_a<-hap1syn %>% filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap1nodups_b<- hap2syn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap1nodups_c<-salsyn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap1nodups<-union(hap1nodups_a,hap1nodups_b) 
+# hap1nodups<-union(hap1nodups,hap1nodups_c) 
+# ##
+# hap2nodups_a<-hap1syn %>% filter(genome=="hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap2nodups_b<-hap2syn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap2nodups_c<-salsyn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# hap2nodups<-union(hap2nodups_a,hap2nodups_b) 
+# hap2nodups<-union(hap2nodups,hap2nodups_c)
+# ##
+# salnodups_a<-hap1syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# salnodups_b<-hap2syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# salnodups_c<-salsyn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
+# salnodups<-union(salnodups_a,salnodups_b) 
+# salnodups<-union(salnodups,salnodups_c)
 ###
 ```
 
@@ -178,9 +208,11 @@ library(GenomicRanges)
 library(GenomicFeatures)
 library(rtracklayer)
 library(tidyverse)
-bedanno<-import("hap1.bed")
-head(bedanno)
-
+# bedanno<-import("hap1.bed")
+# head(bedanno)
+# 
+# 
+# (n(hap1raw$ofID))
 ```
 
 
