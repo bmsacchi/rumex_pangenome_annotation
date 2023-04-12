@@ -18,179 +18,128 @@ setwd("~/Dropbox/rumex_pangenome_annotation")
 ```
 
 #### raw files
-Load in long-format pangenome databases for each reference
+Loading in wide format from query_pangenes() for eah possible reference and bed files.
 ```{r echo=TRUE, message=FALSE}
-hap1raw<-vroom("hap1_pangenes.txt", show_col_types = F)
-bed1<-vroom("hap1.bed", col_names = F)
+# excluded non representative array members and non-syntenic othogroups (see genespace script)
+hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
+hap2_raw<-data.table::fread("pg_hap2_wide_synonly.txt")
+sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
 
-queryhap1<-query_pangenes(hap1raw,bed1)
-hap2raw<-vroom("hap2_pangenes.txt",show_col_types=F)
-salraw<-vroom("salicifolius_pangenes.txt", show_col_types=F)
-```
-#### pangenome file format
+hap1_bed<-vroom("hap1.bed", col_names = F)
+## use hap1 as the total? since that's the ref?
+## and hap1 ref vs sal as ref gives same number of Y loss genes anyway
 
-colname  |definition
----------|------
-ofID | orthofinder-given unique gene ID
-pgID | the unique position-by-orthogroup combination identifier. Each row in the pangenome-annotation is a unique value of this field
-interpChr |  the chromosome (syntenic or actual) on the reference genome
-interpOrd     | the gene-rank order position (interpolated or actual) on the reference genome
-pgRepID     | the ofID for the representative gene for each pgID
-genome    | genome of the focal gene (id column)
-og   | orthogroup ID taken from the combBed.txt file
-flag| specifies whether the gene is a syntenic ortholog (‘PASS’), non-syntenic ortholog, or array member.
-id| bed-specified gene ID 
-chr| chromosome
-start| start pos
-end | end pos
-ord | gene rank order
+## total is number of pgs? 
+#47360 pgIDs - all have position equivs in hap1
+# less in sal - some of those may not have the right position info
+bla<-setdiff(sal_raw$salicifolius,hap1_raw$salicifolius) # 2450 genes in sal not in hap1.
+## ok genes vs pgIDs
+head(bla) # not in b
+## use salicifolius gene name, and pgID as key - relative to hap1?
+hap1_raw %>% select(salicifolius,hap1) %>% n_distinct() ## ok so we've got some duplicate entires but each pgID is distinct
+pgIDkey<-hap1_raw %>% select(pgID,interpChr,start,end,hap1,salicifolius) # ?? useful?
+#47360
+hap1_raw %>%select(pgID) %>% n_distinct() #
+#47360
 
+hap1_raw %>% select(interpChr,start,end, interpOrd) %>% n_distinct()
+#47285 have distinct start,end,chr combos - only discernable via interpOrd column
+#47360 only reached once interpOrd column added
 
-### loading in wide-format
-from query_pangenes()
-```{r}
-hap1_wide<-data.table::fread("pg_hap1_wide.txt")
-#h1_wide_noNS<- hap1_wide %>% filter(str_detect(hap1,"\\*", negate=TRUE)) %>%
- # filter(str_detect(hap2,"\\*", negate=TRUE)) %>% 
-#  filter(str_detect(salicifolius,"\\*", negate=TRUE))
-h1_wide_noNS<- hap1_wide %>% filter_all(all_vars(str_detect(.,"\\*|\\+", negate=TRUE)))
-# getting rid of ns orthos and arrays
-#about 17,000 entries gone
-```
-
-### filtering
-Filtering out any pgIDs that include non-syntenic orthogroups
-```{r}
-hap1filt<- hap1raw %>% group_by(pgID) %>% 
-  filter(all(flag!="NSOrtho")) %>% filter(all(flag!="array")) 
-a<-hap1filt %>% group_by(pgID) %>% summarise(n()) #%>% length()
-
-nachr<-hap1raw %>% filter(is.na(interpChr))
-#pgID with many man yman yentires has NA value at interpChr
-# hap1syn<- hap1raw %>% dplyr::filter(flag=="PASS")
-# hap2syn<-hap2raw %>% dplyr::filter(flag=="PASS")
-# salsyn<-salraw %>% dplyr::filter(flag=="PASS")
-
-# pgIDs_hap1_ns <- hap1raw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
-# pgIDs_hap2_ns <- hap2raw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
-# pgIDs_sal_ns <- salraw %>% filter(flag!="NSOrtho" | flag !="array") %>% select(pgID,id,genome)
-# pgIDs_all<-full_join(pgIDs_hap1_ns,pgIDs_hap2_ns, by="id")
-# pgIDs_all<-full_join(pgIDs_all, pgIDs_sal_ns, by="id")
-
-### try with group_by
+# hap1_total<-hap1_raw %>% filter(salicifolius !="") #19882 entries
+# hap1_total_names <- hap1_total %>% select(hap1) %>% filter(hap1!="")
+# hap1_totalb<- hap1_raw %>%filter(hap1!="") %>% filter(salicifolius!="")
+# sal_total<-sal_raw %>%  filter(salicifolius !="") #22126
+# #sal_total_names <- sal_total %>% select(hap1) %>%filter(hap1 !="")
+# ##
+# #bla<-as.data.frame(setdiff(sal_total$salicifolius,hap1_total$salicifolius)) #22116 shared
+# ## 2450 genes no in hap1. should these be considered in the total? well no in my opinion since im defininf this by total gene number wrt to location in hap1 and i DONT KNOW the location in hap1 
+# ??????
+# k
+## but for plotting don't i just want genes w a hap1 equiv?? 
 
 ```
-Determine which genes are present in haplotype 1 and present or absent in haplotype 2
-Determine which genes are present in haplotype 2 and not present in absent in haplotype 1
-Determine which genes are not shared by sal and the other two, or are only shared between sal and one or the other. 
 
 ### Gene loss on Y 
-
+Identify genes that are shared by salicifolius and hap1, but not hap2.
 ```{r}
-# removing dups - no longer doing this
-# hap1nodups_a<-hap1syn %>% filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap1nodups_b<- hap2syn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap1nodups_c<-salsyn %>%filter(genome == "hap1") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap1nodups<-union(hap1nodups_a,hap1nodups_b) 
-# hap1nodups<-union(hap1nodups,hap1nodups_c) 
-# ##
-# hap2nodups_a<-hap1syn %>% filter(genome=="hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap2nodups_b<-hap2syn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap2nodups_c<-salsyn %>%filter(genome == "hap2") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# hap2nodups<-union(hap2nodups_a,hap2nodups_b) 
-# hap2nodups<-union(hap2nodups,hap2nodups_c)
-# ##
-# salnodups_a<-hap1syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# salnodups_b<-hap2syn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# salnodups_c<-salsyn %>% filter(genome=="salicifolius") %>% distinct(pgID,.keep_all=TRUE) %>% select(id)
-# salnodups<-union(salnodups_a,salnodups_b) 
-# salnodups<-union(salnodups,salnodups_c)
-###
-```
+hap1_yloss<-hap1_raw %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #%>%select(salicifolius) %>% n_distinct()#1337 distincT!!
+  ## ok two duplicates present here but not in the sal ref - not a big deal imo 
+#sal_yloss<-sal_raw %>% filter(hap1!="" & hap2=="" & salicifolius!="") #%>% select(salicifolius) %>% n_distinct()#1337 distinctgenes
+#hap2_yloss<- hap2_raw%>% filter(hap1!="" & hap2=="" & salicifolius!="") #%>% select(salicifolius) %>% n_distinct()#956 distinct genes
 
+# hap1sal<-union(hap1_yloss$salicifolius,sal_yloss$salicifolius) # hap1 and sal ref files have same list of y loss genes 
+# #1337 shared
+# hap1sal<-as.data.frame(hap1sal) ## post filtered set
+# # hap1hap2<-union(hap1_yloss$salicifolius,hap2_yloss$salicifolius) # hap2 and hap1 have 381 distinct y loss genes
+# #1337 shared
+# hap1hap2<-as.data.frame(hap1hap2)
+# hap2sal<-union(hap2_yloss$salicifolius,sal_yloss$salicifolius) #hap2 and sal ref have same list of y loss genes
+# #1337 shared
+# #hap2sal<-as.data.frame(hap2sal)
+# ## to do: incorporate list of Y loss genes from hap1, which are more numerous than those present in the 
+# # going with the shared set of 1337 genes i guess!
 
-#### Syntenic genes
-Obtain a list of genes shared by hap1, sal, but NOT hap2
-```{r}
-## remove dups and get into wide format
-hap1pg<-hap1syn %>%select(pgID,genome,id) %>%
-  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
-  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
-  mutate_all( ~replace(., lengths(.)==0, NA))
-hap2pg <-hap2syn %>%select(pgID,genome,id) %>%
-  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
-  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
-  mutate_all( ~replace(., lengths(.)==0, NA))
-salpg<- salsyn %>%select(pgID,genome,id) %>%
-  filter((id%in%salnodups$id | id%in%hap2nodups$id | id%in%hap1nodups$id)) %>%
-  pivot_wider(names_from=genome, values_from=id,values_fn=list) %>% 
-  mutate_all( ~replace(., lengths(.)==0, NA))
-##
-df1<-hap1pg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
-df2<-hap2pg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
-df3<-salpg %>% filter(!is.na(hap1) & is.na(hap2) & !is.na(salicifolius)) %>% select(hap1)
-## combined list
-all_nohap2<-intersect(df1,df2)
-all_nohap2<-intersect(all_nohap2,df3)
-## THESE ARE THE GENES W SAL AND HAP1 BUT NO HAP2 equivs
 ```
 #### connect to positions
 ```{r}
-all_nohap2$hap1<- as.character(all_nohap2$hap1)
-anno_pg<-inner_join(all_nohap2,hap1syn, by=c("hap1"="id"))
-#write.csv(anno_pg, "hap1sal_nohap2.csv")
+
+write.csv(hap1_yloss, "hap1sal_nohap2.csv")
 ```
 ### Summary of gene list
 
 #### summarising number of genes
 ```{r}
-a<-anno_pg %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+a<-hap1_yloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
 
-b<-hap1raw %>% filter(genome=="hap1") %>% group_by(interpChr) %>% summarise(n=n()) %>%
+b<-hap1_raw %>% group_by(interpChr) %>% summarise(n=n()) %>%
   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
 # b<-hap1pg %>% filter(!is.na(hap1)) %>% group_by(interpChr) %>% summarise(n=n()) %>%
 #   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-## ok what about the counts from the og bed file
+
+# ## ok what about the counts from the og bed file
 bedbedbed<-vroom("hap1.bed", col_names = F)
 c<-bedbedbed %>% rename(interpChr=X1) %>% group_by(.,interpChr) %>% summarise(n=n())  %>%
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
 ```
 #### How many genes are missing from theX compared to other chr?
 What proportion of genes (wrt hap1 bed file) have a syntenic ortholog shared with Salicifolius but NOT hap2?
 ```{r proportion}
-chrpropn<-full_join(c,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
+chrpropn<-full_join(b,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
-## denominator might be off?
+## 
 ```
 #### PARs and old and new sex-linked regions?
 ```{r}
-anno_par <- anno_pg %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
                         if_else(interpChr=="X" & end>367000000,"PAR2",
                         if_else(interpChr=="A1","A1",
                         if_else(interpChr=="A2","A2",
                         if_else(interpChr=="A4","A4",NA))))))))
-a<-anno_par %>% group_by(region) %>% summarise(n=n()) %>% 
+summary_yloss_pars <-yloss_pars %>% group_by(region) %>% summarise(n=n()) %>% 
   filter(!is.na(region))
 
-bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
-  mutate(.,region=if_else(interpChr =="X" &end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
 
-c<-bedfix %>% group_by(region) %>% summarise(n=n())  %>%
-  filter(!is.na(region))
-## keep only non dup genes
-b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
-  filter(!is.na(region))
-chrpropnPAR<-full_join(b,a,by="region",suffix=c(".total",".notonhap2")) %>% 
-  mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
+# bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
+#   mutate(.,region=if_else(interpChr =="X" &end<=71000000,"PAR1",
+#                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+#                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+#                         if_else(interpChr=="X" & end>367000000,"PAR2",
+#                         if_else(interpChr=="A1","A1",
+#                         if_else(interpChr=="A2","A2",
+#                         if_else(interpChr=="A4","A4",NA))))))))
+# 
+# c<-bedfix %>% group_by(region) %>% summarise(n=n())  %>%
+#   filter(!is.na(region))
+# ## keep only non dup genes
+# b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
+#   filter(!is.na(region))
+# chrpropnPAR<-full_join(b,a,by="region",suffix=c(".total",".notonhap2")) %>% 
+#   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
+  
 ```
 #### results so far
 genes missing from hap2 
