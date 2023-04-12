@@ -122,6 +122,15 @@ yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=710000
 summary_yloss_pars <-yloss_pars %>% group_by(region) %>% summarise(n=n()) %>% 
   filter(!is.na(region))
 
+total_pangenes<-hap1_raw %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_total_pangenes <-total_pangenes %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
 
 # bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
 #   mutate(.,region=if_else(interpChr =="X" &end<=71000000,"PAR1",
@@ -137,9 +146,11 @@ summary_yloss_pars <-yloss_pars %>% group_by(region) %>% summarise(n=n()) %>%
 # ## keep only non dup genes
 # b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
 #   filter(!is.na(region))
-# chrpropnPAR<-full_join(b,a,by="region",suffix=c(".total",".notonhap2")) %>% 
-#   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
+ chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
+   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
   
+ 
+
 ```
 #### results so far
 genes missing from hap2 
