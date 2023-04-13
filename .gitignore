@@ -7,3 +7,5 @@ hap1.bed
 sal_ref_filt.csv
 sal_all_syntenicortho.csv
 *.txt
+pangenepropnyloss.pdf
+syntenic_orthos_all.csv
