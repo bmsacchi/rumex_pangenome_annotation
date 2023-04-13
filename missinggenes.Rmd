@@ -147,18 +147,93 @@ summary_total_pangenes <-total_pangenes %>% group_by(region) %>% summarise(n=n()
 # b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
 #   filter(!is.na(region))
  chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
-   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
-  
- 
+   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
+   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
+## plot proprtions tho
 
+ggplot(chrpropnPAR) + geom_col(aes(x=region,y=propn)) + 
+  theme_classic() + 
+  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
+ggsave("pangenepropn_yloss.png", width=6,height=4) 
+
+yloss.vector<-as.vector(chrpropnPAR$n.notonhap2)
+total.vector<-as.vector(chrpropnPAR$n.total)
+proptesttest<-prop_test(yloss.vector,total.vector )
+proptesttest$df
+as.character(chrpropnPAR$region)
+xtab<-select(chrpropnPAR,region,n.total,n.notonhap2) %>% column_to_rownames(var="region")
+#rownames(xtab)<-xtab$region
+dimnames(xtab) 
+row_wise_prop_test(xtab)
+xq<-chisq.test(xtab,p=rep(1/7,7))
+xq$p.value
 ```
 #### results so far
 genes missing from hap2 
 ```{r}
 library(knitr)
 kable(chrpropnPAR)
+
+zoestuff<-filter(sal_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+zoestuff2<-filter(hap1_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) %>% n_distinct()
+zoestuff3<-filter(hap1_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) %>% n_distinct()
+
+write.csv(zoestuff, "syntenic_orthos_all.csv",quote = F,row.names = F)
+
 ```
 
+###redoing bc i messed up the denominator (again!!!)
+```{r}
+hasanortho<-hap1_raw %>% filter((hap1!=""|hap2!="")&salicifolius!="")
+
+hap1_yloss_redo<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #number doesn't change (expected)
+
+a_redo<-hap1_yloss_redo %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+
+b_redo<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+
+yloss_pars_redo <- hap1_yloss_redo %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_yloss_pars_redo <-yloss_pars_redo %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
+
+total_pangenes_redo<-hasanortho %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_total_pangenes_redo <-total_pangenes_redo %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
+
+chrpropnPAR_redo<-full_join(summary_total_pangenes_redo,summary_yloss_pars_redo,by="region",suffix=c(".total",".notonhap2")) %>% 
+   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
+   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
+## plot proprtions tho
+
+ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
+  theme_classic() + 
+  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
+ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
+```
+#### list for blasting genes against hap2 to confirm their loss??
+
+```{r}
+genelisth1<-hap1_yloss_redo %>% select(hap1)
+genelistsal<-hap1_yloss %>% select(salicifolius)
+#write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
+#write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
+
+
+```
 
 
 #### plotting
@@ -173,6 +248,8 @@ library(tidyverse)
 # 
 # 
 # (n(hap1raw$ofID))
+
+
 ```
 
 
