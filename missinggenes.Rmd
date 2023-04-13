@@ -24,39 +24,9 @@ Loading in wide format from query_pangenes() for eah possible reference and bed 
 hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
 hap2_raw<-data.table::fread("pg_hap2_wide_synonly.txt")
 sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
+hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
 
 hap1_bed<-vroom("hap1.bed", col_names = F)
-## use hap1 as the total? since that's the ref?
-## and hap1 ref vs sal as ref gives same number of Y loss genes anyway
-
-## total is number of pgs? 
-#47360 pgIDs - all have position equivs in hap1
-# less in sal - some of those may not have the right position info
-bla<-setdiff(sal_raw$salicifolius,hap1_raw$salicifolius) # 2450 genes in sal not in hap1.
-## ok genes vs pgIDs
-head(bla) # not in b
-## use salicifolius gene name, and pgID as key - relative to hap1?
-hap1_raw %>% select(salicifolius,hap1) %>% n_distinct() ## ok so we've got some duplicate entires but each pgID is distinct
-pgIDkey<-hap1_raw %>% select(pgID,interpChr,start,end,hap1,salicifolius) # ?? useful?
-#47360
-hap1_raw %>%select(pgID) %>% n_distinct() #
-#47360
-
-hap1_raw %>% select(interpChr,start,end, interpOrd) %>% n_distinct()
-#47285 have distinct start,end,chr combos - only discernable via interpOrd column
-#47360 only reached once interpOrd column added
-
-# hap1_total<-hap1_raw %>% filter(salicifolius !="") #19882 entries
-# hap1_total_names <- hap1_total %>% select(hap1) %>% filter(hap1!="")
-# hap1_totalb<- hap1_raw %>%filter(hap1!="") %>% filter(salicifolius!="")
-# sal_total<-sal_raw %>%  filter(salicifolius !="") #22126
-# #sal_total_names <- sal_total %>% select(hap1) %>%filter(hap1 !="")
-# ##
-# #bla<-as.data.frame(setdiff(sal_total$salicifolius,hap1_total$salicifolius)) #22116 shared
-# ## 2450 genes no in hap1. should these be considered in the total? well no in my opinion since im defininf this by total gene number wrt to location in hap1 and i DONT KNOW the location in hap1 
-# ??????
-# k
-## but for plotting don't i just want genes w a hap1 equiv?? 
 
 ```
 
@@ -224,6 +194,8 @@ ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) +
   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
 ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
 ```
+####
+
 #### list for blasting genes against hap2 to confirm their loss??
 
 ```{r}
@@ -231,8 +203,6 @@ genelisth1<-hap1_yloss_redo %>% select(hap1)
 genelistsal<-hap1_yloss %>% select(salicifolius)
 #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
 #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
-
-
 ```
 
 
