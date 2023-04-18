@@ -29,132 +29,29 @@ hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
 hap1_bed<-vroom("hap1.bed", col_names = F)
 
 ```
+### get rid of pgs w non-syn OG members
+```{r}
+nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) #16071 ns orths
+
+onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain?
+
+
+onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
+
+```
 
 ### Gene loss on Y 
 Identify genes that are shared by salicifolius and hap1, but not hap2.
 ```{r}
-hap1_yloss<-hap1_raw %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #%>%select(salicifolius) %>% n_distinct()#1337 distincT!!
-  ## ok two duplicates present here but not in the sal ref - not a big deal imo 
-#sal_yloss<-sal_raw %>% filter(hap1!="" & hap2=="" & salicifolius!="") #%>% select(salicifolius) %>% n_distinct()#1337 distinctgenes
-#hap2_yloss<- hap2_raw%>% filter(hap1!="" & hap2=="" & salicifolius!="") #%>% select(salicifolius) %>% n_distinct()#956 distinct genes
-
-# hap1sal<-union(hap1_yloss$salicifolius,sal_yloss$salicifolius) # hap1 and sal ref files have same list of y loss genes 
-# #1337 shared
-# hap1sal<-as.data.frame(hap1sal) ## post filtered set
-# # hap1hap2<-union(hap1_yloss$salicifolius,hap2_yloss$salicifolius) # hap2 and hap1 have 381 distinct y loss genes
-# #1337 shared
-# hap1hap2<-as.data.frame(hap1hap2)
-# hap2sal<-union(hap2_yloss$salicifolius,sal_yloss$salicifolius) #hap2 and sal ref have same list of y loss genes
-# #1337 shared
-# #hap2sal<-as.data.frame(hap2sal)
-# ## to do: incorporate list of Y loss genes from hap1, which are more numerous than those present in the 
-# # going with the shared set of 1337 genes i guess!
-
+hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")
 ```
 #### connect to positions
 ```{r}
-
-write.csv(hap1_yloss, "hap1sal_nohap2.csv")
+write.csv(hap1_yloss, "hap1sal_nohap2_syn.csv")
 ```
-### Summary of gene list
-
-#### summarising number of genes
+### PARS and correct denominator
 ```{r}
-a<-hap1_yloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-
-b<-hap1_raw %>% group_by(interpChr) %>% summarise(n=n()) %>%
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-# b<-hap1pg %>% filter(!is.na(hap1)) %>% group_by(interpChr) %>% summarise(n=n()) %>%
-#   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-
-# ## ok what about the counts from the og bed file
-bedbedbed<-vroom("hap1.bed", col_names = F)
-c<-bedbedbed %>% rename(interpChr=X1) %>% group_by(.,interpChr) %>% summarise(n=n())  %>%
-   filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-```
-#### How many genes are missing from theX compared to other chr?
-What proportion of genes (wrt hap1 bed file) have a syntenic ortholog shared with Salicifolius but NOT hap2?
-```{r proportion}
-chrpropn<-full_join(b,a,by="interpChr",suffix=c(".total",".notonhap2")) %>% 
-  mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100)
-## 
-```
-#### PARs and old and new sex-linked regions?
-```{r}
-yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
-summary_yloss_pars <-yloss_pars %>% group_by(region) %>% summarise(n=n()) %>% 
-  filter(!is.na(region))
-
-total_pangenes<-hap1_raw %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
-summary_total_pangenes <-total_pangenes %>% group_by(region) %>% summarise(n=n()) %>% 
-  filter(!is.na(region))
-
-# bedfix<-bedbedbed %>% rename(interpChr=X1)%>% rename(end=X3) %>%
-#   mutate(.,region=if_else(interpChr =="X" &end<=71000000,"PAR1",
-#                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-#                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-#                         if_else(interpChr=="X" & end>367000000,"PAR2",
-#                         if_else(interpChr=="A1","A1",
-#                         if_else(interpChr=="A2","A2",
-#                         if_else(interpChr=="A4","A4",NA))))))))
-# 
-# c<-bedfix %>% group_by(region) %>% summarise(n=n())  %>%
-#   filter(!is.na(region))
-# ## keep only non dup genes
-# b<-bedfix%>% filter(X4%in%hap1nodups$id) %>% group_by(region) %>% summarise(n=n())  %>%
-#   filter(!is.na(region))
- chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
-   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
-   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
-## plot proprtions tho
-
-ggplot(chrpropnPAR) + geom_col(aes(x=region,y=propn)) + 
-  theme_classic() + 
-  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-ggsave("pangenepropn_yloss.png", width=6,height=4) 
-
-yloss.vector<-as.vector(chrpropnPAR$n.notonhap2)
-total.vector<-as.vector(chrpropnPAR$n.total)
-proptesttest<-prop_test(yloss.vector,total.vector )
-proptesttest$df
-as.character(chrpropnPAR$region)
-xtab<-select(chrpropnPAR,region,n.total,n.notonhap2) %>% column_to_rownames(var="region")
-#rownames(xtab)<-xtab$region
-dimnames(xtab) 
-row_wise_prop_test(xtab)
-xq<-chisq.test(xtab,p=rep(1/7,7))
-xq$p.value
-```
-#### results so far
-genes missing from hap2 
-```{r}
-library(knitr)
-kable(chrpropnPAR)
-
-zoestuff<-filter(sal_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
-zoestuff2<-filter(hap1_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) %>% n_distinct()
-zoestuff3<-filter(hap1_raw,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) %>% n_distinct()
-
-write.csv(zoestuff, "syntenic_orthos_all.csv",quote = F,row.names = F)
-
-```
-
-###redoing bc i messed up the denominator (again!!!)
-```{r}
-hasanortho<-hap1_raw %>% filter((hap1!=""|hap2!="")&salicifolius!="")
+hasanortho<-onlysyn %>% filter((hap1!=""|hap2!="")&salicifolius!="")
 
 hap1_yloss_redo<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #number doesn't change (expected)
 
@@ -187,39 +84,37 @@ summary_total_pangenes_redo <-total_pangenes_redo %>% group_by(region) %>% summa
 chrpropnPAR_redo<-full_join(summary_total_pangenes_redo,summary_yloss_pars_redo,by="region",suffix=c(".total",".notonhap2")) %>% 
    mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
-## plot proprtions tho
+## plot proportions 
 
 ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
   theme_classic() + 
   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
 ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
 ```
-####
 
+#### results so far
+genes missing from hap2 
+```{r}
+library(knitr)
+kable(chrpropnPAR_redo)
+
+zoestuff<-filter(onlysyn,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+
+write.csv(zoestuff, "syntenic_orthos_all_synonly.csv",quote = F,row.names = F)
+
+```
 #### list for blasting genes against hap2 to confirm their loss??
 
 ```{r}
-genelisth1<-hap1_yloss_redo %>% select(hap1)
-genelistsal<-hap1_yloss %>% select(salicifolius)
-#write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
-#write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
+# genelisth1<-hap1_yloss_redo %>% select(hap1)
+# genelistsal<-hap1_yloss %>% select(salicifolius)
+# #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
+# #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
 
 
 #### plotting
 ```{r}
-#library(ggbio)
-library(GenomicRanges)
-library(GenomicFeatures)
-library(rtracklayer)
-library(tidyverse)
-# bedanno<-import("hap1.bed")
-# head(bedanno)
-# 
-# 
-# (n(hap1raw$ofID))
-
-
 ```
 
 
