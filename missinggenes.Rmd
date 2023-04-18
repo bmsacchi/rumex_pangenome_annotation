@@ -18,7 +18,7 @@ setwd("~/Dropbox/rumex_pangenome_annotation")
 ```
 
 #### raw files
-Loading in wide format from query_pangenes() for eah possible reference and bed files.
+Loading in wide format from query_pangenes() for each possible reference and bed files.
 ```{r echo=TRUE, message=FALSE}
 # excluded non representative array members and non-syntenic othogroups (see genespace script)
 hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
