@@ -31,7 +31,7 @@ hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
 ### get rid of pgs w non-syn OG members
 ```{r}
-nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) #16071 ns orths
+nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) %>%  filter!grepl("\\|",)))#16071 ns orths 
 
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain?
 
@@ -97,16 +97,21 @@ genes missing from hap2
 ```{r}
 library(knitr)
 kable(chrpropnPAR_redo)
+```
 
-zoestuff<-filter(onlysyn,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+```{r}
 
-write.csv(zoestuff, "syntenic_orthos_all_synonly.csv",quote = F,row.names = F)
-
+#zoestuff<-filter(onlysyn,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+## at least one
+#zoestuff2<-filter(onlysyn_sal,(hap1!=""|hap2!="") &salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+#zoestuff2<-filter(onlysyn_sal,(hap1!=""|hap2!="") &salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
+#write.csv(zoestuff2, "syntenic_orthos_sal.csv",quote = F,row.names = F)
+#zoestuff3<-read.csv("pg_hap1_wide_onetoone.txt")
 ```
 #### list for blasting genes against hap2 to confirm their loss??
 
 ```{r}
-# genelisth1<-hap1_yloss_redo %>% select(hap1)
+ genelisth1<-hap1_yloss_redo %>% select(hap1)
 # genelistsal<-hap1_yloss %>% select(salicifolius)
 # #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
