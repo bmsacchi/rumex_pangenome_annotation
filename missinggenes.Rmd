@@ -31,7 +31,7 @@ hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
 ### get rid of pgs w non-syn OG members
 ```{r}
-nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) %>%  filter!grepl("\\|",)))#16071 ns orths 
+nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
 
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain?
 
@@ -43,11 +43,9 @@ onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
 ### Gene loss on Y 
 Identify genes that are shared by salicifolius and hap1, but not hap2.
 ```{r}
-hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")
-```
-#### connect to positions
-```{r}
-write.csv(hap1_yloss, "hap1sal_nohap2_syn.csv")
+#hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")
+
+#write.csv(hap1_yloss, "hap1sal_nohap2_syn.csv")
 ```
 ### PARS and correct denominator
 ```{r}
@@ -108,13 +106,39 @@ kable(chrpropnPAR_redo)
 #write.csv(zoestuff2, "syntenic_orthos_sal.csv",quote = F,row.names = F)
 #zoestuff3<-read.csv("pg_hap1_wide_onetoone.txt")
 ```
-#### list for blasting genes against hap2 to confirm their loss??
+#### list for blasting genes against hap2 to confirm their loss
 
 ```{r}
- genelisth1<-hap1_yloss_redo %>% select(hap1)
-# genelistsal<-hap1_yloss %>% select(salicifolius)
-# #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
+genelisth1<-hap1_yloss_redo %>% select(hap1)
+#genelistsal<-hap1_yloss_redo %>% select(salicifolius)
+write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
+```
+##### BLAST
+```{bash}
+#source ~/.bash_profile
+#awk -F"-" '/^>/{print $1; next}1' NChap1_final.all.maker.transcripts.fasta > NChap1.out.fasta
+
+
+#echo "Filter out candidate loss genes from nchap1 transcript fasta"
+#genelist="genelisthap1.txt"
+#fasta="NChap1.out.fasta"
+#while read i; do
+#    samtools faidx $fasta $i  >> hap1_sequences.fa
+#done < $genelist
+
+#wait
+
+#echo "starting blastn"
+#makeblastdb -in NChap2_final.all.maker.transcripts.fasta -dbtype nucl \
+#  -input_type fasta -out hap2transcripts
+  
+#wait
+
+
+
+#blastn -db hap2transcripts -query hap1_sequences.fasta \
+#  -out blastout.txt
 ```
 
 
