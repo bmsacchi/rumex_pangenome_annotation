@@ -6,7 +6,7 @@
 hap1.bed
 sal_ref_filt.csv
 sal_all_syntenicortho.csv
-*.txt
+pg*wide*.txt
 pangenepropnyloss.pdf
 syntenic_orthos_all.csv
 hap1sal_nohap2_syn.csv
