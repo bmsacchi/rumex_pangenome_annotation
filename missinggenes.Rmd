@@ -117,27 +117,50 @@ write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
 ```
 ##### BLAST
 Run in ohta because stuff is installed there
-```{bash eval=FALSE, warning=FALSE,error=FALSE}
+```{bash eval=TRUE, error=FALSE, warning=FALSE}
 # ./blast_genome.sh
+cat blast_genome.sh
 ```
 #### futher analysis of blast output in R
-problem: 
+
 ```{r, warning=FALSE,message=FALSE}
-blastout<-read_tsv("blast_max1.tsv",
-                   col_names = c("qseqid","sseqid","pident",
-                                "length","mismatch","gapopen",
-                                "qstart","qend","sstart","send","evalue","bitscore"))
-blast<-blastout %>% select(qseqid,sseqid,pident,evalue)
-blast_uniq<- blastout  %>% add_count(qseqid) %>% filter(n==1)
-blast_dup<- blastout %>% add_count(qseqid) %>% filter(n>1)
+blastout<-read_tsv("blast_h2genome.tsv",
+                    col_names = c("qseqid", "sseqid", "pident", "length", 
+                                  "mismatch", "gapopen", "qstart", "qend", 
+                                  "qlen", "sstart", "send", "slen", "evalue", 
+                                  "bitscore", "score"))
 
-blast_pos<-full_join(blastout,hap2_raw,by=c("qseqid"="hap1")) %>% select(qseqid,start,end,sseqid,interpChr,chr,pident) %>% add_count(qseqid) 
-blast_uniq_pos<-blast_pos %>%filter(n==1)
-blast_dup_pos<-blast_pos %>%filter(n>1) 
+blast_pos<-full_join(blastout,hap2_raw,by=c("qseqid"="hap1"))  %>% add_count(qseqid) 
+### which genes, out of any, are no hits in hap2 genome
+hits<-blastout %>% select(qseqid) %>% distinct()
+nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genelist do not have a hit
+# not a surprise, its a big genome! and lots might be garbage!
+okhit<- blastout %>% filter(pident > 90) #19537/25326 are 90% id
+### for each gene with at least one hit - is the top hit on Y1 or Y2?
+# group by gene and chromosome match, mutate ranking pid with highest value having rank 1
+tophit<- blastout %>% group_by(qseqid, sseqid) %>%
+  mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
+  filter(the_rank == 1) %>% select(-the_rank) %>% mutate(alignedpropn = length/qlen) 
+dim(tophit) #1174 genes based on top hit per chr only
+tophit_eval<- blastout %>% group_by(qseqid, sseqid) %>%
+  mutate(the_rank  = rank(evalue, ties.method = "random")) %>%
+  filter(the_rank == 1) %>% select(-the_rank) # pick the ones with the lowest e-value
+setdiff(tophit$qseqid,tophit_eval$qseqid) # same! whether we ranked based on percent id or e val
+tophitY<-filter(tophit,grepl("Y.",sseqid)) # get all the Y1 and Y2 hits
 
-#note from stephen
-#The catch is when there are paralogs in the genome, and how to sort those out- no significant match on Y1 or Y2 is one easy extra test, but then there might be significant matches on Y1 or Y2 that are weaker than on autosomes- I think in those cases we would most simply treat as losses as well
-blast_post %>% 
+dim(tophitY) # 418 genes have a top hit on Y1 or Y2
+dim(filter(tophitY, sseqid == "Y1")) # 198 on Y1
+dim(filter(tophitY, sseqid == "Y2")) # 220 on Y2
+# what is the proportion of query gene aligned to hap2?
+t#ophitY_prop<- tophitY #%>% mutate(alignedpropn = length/qlen) 
+## filter out genes that have less than half of their sequence length aligned to hap2
+tophitY_partialloss <- tophitY %>% filter(alignedpropn < 0.5)
+tophitY_notloss <- tophitY %>% filter(alignedpropn > 0.5)
+
+#print(tophitY_partialloss)
+dim(tophitY_partialloss) # 371 genes
+dim(filter(tophitY_partialloss, sseqid == "Y1")) # 168 on Y1
+dim(filter(tophitY_partialloss, sseqid == "Y2")) # 203 on Y2
 ```
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 

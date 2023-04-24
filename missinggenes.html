@@ -1006,6 +1006,9 @@ interested in the sex chromosomes.</p>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vroom)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(GENESPACE)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">&quot;~/Dropbox/rumex_pangenome_annotation&quot;</span>)</span></code></pre></div>
+<div id="pre-cleaning-using-grep" class="section level4">
+<h4>pre-cleaning using grep</h4>
+</div>
 <div id="raw-files" class="section level4">
 <h4>raw files</h4>
 <p>Loading in wide format from query_pangenes() for each possible
@@ -1160,60 +1163,79 @@ hap2.</p>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># #write.table(genelistsal, &quot;genelistsal.txt&quot;,quote=FALSE,sep=&quot;\t&quot;)</span></span></code></pre></div>
 <div id="blast" class="section level5">
 <h5>BLAST</h5>
-<p>Run in ohta because stuff is installed there. blastexploration.sh and
-blast_hap2loss.sh</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">## parse fasta headers</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="at">-F</span><span class="st">&quot;-&quot;</span> <span class="st">&#39;/^&gt;/{print $1; next}1&#39;</span> NChap1_final.all.maker.transcripts.fasta <span class="op">&gt;</span> NChap1.out.fasta</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">## get list of genes to blast in fasta format</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{print $2}&#39;</span> genelisthap1.txt <span class="op">&gt;</span> genelisthap1.out.txt </span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;Filter out candidate loss genes from nchap1 transcript fasta&quot;</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="va">genelist</span><span class="op">=</span><span class="st">&quot;genelisthap1.out.txt&quot;</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="va">fasta</span><span class="op">=</span><span class="st">&quot;NChap1.out.fasta&quot;</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">read</span> <span class="va">i</span><span class="kw">;</span> <span class="cf">do</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">samtools</span> faidx <span class="va">$fasta</span> <span class="va">$i</span>  <span class="op">&gt;&gt;</span> hap1_sequences.fa</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="op">&lt;</span> <span class="va">$genelist</span></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="bu">wait</span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">## make blast db from nc hap2 transcripts</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;starting blastn&quot;</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="ex">makeblastdb</span> <span class="at">-in</span> NChap2_final.all.maker.transcripts.fasta <span class="at">-dbtype</span> nucl <span class="dt">\</span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">-input_type</span> fasta <span class="at">-out</span> hap2transcripts</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co"># the following are one-liners I used to parse and explore blast output</span></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">## blast results - blasting hap1 missing genes against hap2 transcript fasta ##</span></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">## first attempt:</span></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="ex">blastn</span> <span class="at">-db</span> hap2transcripts <span class="at">-query</span> hap1_sequences.fa   <span class="at">-out</span> blastout.txt</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="ex">blastn</span> <span class="at">-db</span> hap2transcripts <span class="at">-query</span> hap1_sequences.fa  <span class="at">-outfmt</span> 6 <span class="at">-out</span> blastout_tab.txt</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co">## in parsing the results I realized that there were multiple instances of blast hits for the same sequence pairs. Not very useful for me, because at least one strong blast his is enough for me to discount a gene a properly missing.</span></span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co">## setting max-hsps to 1 (default is 0, whihc means no limit)</span></span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="ex">blastn</span> <span class="at">-db</span> hap2transcripts <span class="at">-query</span> hap1_sequences.fa <span class="at">-max_hsps</span> 1  <span class="at">-outfmt</span> 6 <span class="at">-out</span> blast_max1.tsv</span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="ex">blastn</span> <span class="at">-db</span> hap2transcripts <span class="at">-query</span> hap1_sequences.fa <span class="at">-max_hsps</span> 1 <span class="at">-out</span> blast_max1.xml.txt</span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co">## only the xml format reveals &quot;no hits found&quot; genes</span></span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-B</span> 5 <span class="st">&quot;No hits found&quot;</span> blast_max1.xml.txt <span class="kw">|</span><span class="fu">grep</span> <span class="st">&quot;Query&quot;</span> <span class="op">&gt;</span> nohits.max1.txt</span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a><span class="co">## counting</span></span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="fu">less</span> nohits.max1.txt <span class="kw">|</span><span class="fu">wc</span> <span class="at">-l</span></span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co">#output: 400</span></span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{print $2}&#39;</span> nohits.max1.txt <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;|&quot;</span> <span class="op">&gt;</span>nohits.max1.genes.txt</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co"># 397 - 3 of those were dups</span></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="co">##----------------------------------------------------------------------</span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">## unique hap1 genes in blast output</span></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{print $1}&#39;</span> blast_max1.tsv <span class="kw">|</span> <span class="fu">sort</span><span class="kw">|</span> <span class="fu">uniq</span> <span class="kw">|</span><span class="fu">wc</span> <span class="at">-l</span></span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="co"># 449, 122 entries are duplicate</span></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="co">## total genes in putative missing list </span></span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="co">#849</span></span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="co">## numbers add up - out of the 849 genes, 400 have no hits, 449 have at least one hit, 122 of those have multiple hits in hap2 (on different genes)</span></span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="co">##----------------------------------------------------------------------</span></span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{ if ($3 &lt; 90) { print } }&#39;</span> blast_max1.tsv <span class="op">&gt;</span> lowpercenthits_max1.txt</span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="co"># 151 genes have low % ID hits</span></span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{ if ($11 &lt; 0.01) { print } }&#39;</span> blast_max1.tsv <span class="op">&gt;</span> goodEhits_max1.txt</span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a><span class="co"># 663 (all hits) have good &quot;e&quot; lol</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a><span class="fu">awk</span> <span class="st">&#39;{ if ($3 &lt; 97) { print } }&#39;</span> blast_max1.tsv <span class="op">&gt;</span> reallylowpercenthits_max1.txt</span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="co"># 240 genes have low ID % hits when we make it more stringent</span></span></code></pre></div>
+<p>Run in ohta because stuff is installed there</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ./blast_genome.sh</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> blast_genome.sh</span></code></pre></div>
+<pre><code>## #!/bin/bash
+## 
+## ## redoing blast with the whoel genome not just the transcriptome
+## #fasta=&quot;NChap1.out.fasta&quot;
+## #genelist=&quot;genelisthap1.out.txt&quot;
+## #while read i; do 
+## #    samtools faidx $fasta $i &gt;&gt; hap1_sequences.fa
+## #done &lt; $genelist
+## 
+## echo &quot;creating hap2 genome db&quot;
+## 
+## makeblastdb -in /ohta2/Rumex/Dovetail_xyy_pacbio-male/final_scaffolded_assemblies/NChap2_final.fa \
+##  -input_type fasta -dbtype nucl -out hap2genome
+## 
+## wait
+## 
+## echo &quot;blasting hap1 sequences to hap2 geno&quot;
+## 
+## blastn -db hap2genome -query hap1_sequences.fa \
+##  -outfmt &quot;6 qseqid sseqid pident length mismatch gapopen qstart qend qlen sstart send slen evalue bitscore score&quot; \
+##  -out blast_h2genome.tsv</code></pre>
 </div>
+</div>
+<div id="futher-analysis-of-blast-output-in-r" class="section level4">
+<h4>futher analysis of blast output in R</h4>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>blastout<span class="ot">&lt;-</span><span class="fu">read_tsv</span>(<span class="st">&quot;blast_h2genome.tsv&quot;</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">col_names =</span> <span class="fu">c</span>(<span class="st">&quot;qseqid&quot;</span>, <span class="st">&quot;sseqid&quot;</span>, <span class="st">&quot;pident&quot;</span>, <span class="st">&quot;length&quot;</span>, </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">&quot;mismatch&quot;</span>, <span class="st">&quot;gapopen&quot;</span>, <span class="st">&quot;qstart&quot;</span>, <span class="st">&quot;qend&quot;</span>, </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">&quot;qlen&quot;</span>, <span class="st">&quot;sstart&quot;</span>, <span class="st">&quot;send&quot;</span>, <span class="st">&quot;slen&quot;</span>, <span class="st">&quot;evalue&quot;</span>, </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">&quot;bitscore&quot;</span>, <span class="st">&quot;score&quot;</span>))</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>blast_pos<span class="ot">&lt;-</span><span class="fu">full_join</span>(blastout,hap2_raw,<span class="at">by=</span><span class="fu">c</span>(<span class="st">&quot;qseqid&quot;</span><span class="ot">=</span><span class="st">&quot;hap1&quot;</span>))  <span class="sc">%&gt;%</span> <span class="fu">add_count</span>(qseqid) </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="do">### which genes, out of any, are no hits in hap2 genome</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>hits<span class="ot">&lt;-</span>blastout <span class="sc">%&gt;%</span> <span class="fu">select</span>(qseqid) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>()</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>nohit<span class="ot">&lt;-</span> <span class="fu">anti_join</span>(genelisth1,hits, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;hap1&quot;</span><span class="ot">=</span><span class="st">&quot;qseqid&quot;</span>)) <span class="co"># 117 genes in genelist do not have a hit</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co"># not a surprise, its a big genome! and lots might be garbage!</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>okhit<span class="ot">&lt;-</span> blastout <span class="sc">%&gt;%</span> <span class="fu">filter</span>(pident <span class="sc">&gt;</span> <span class="dv">90</span>) <span class="co">#19537/25326 are 90% id</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="do">### for each gene with at least one hit - is the top hit on Y1 or Y2?</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co"># group by gene and chromosome match, mutate ranking pid with highest value having rank 1</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>tophit<span class="ot">&lt;-</span> blastout <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(qseqid, sseqid) <span class="sc">%&gt;%</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">the_rank  =</span> <span class="fu">rank</span>(<span class="sc">-</span>pident, <span class="at">ties.method =</span> <span class="st">&quot;random&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(the_rank <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>the_rank)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophit) <span class="co">#1174 genes based on top hit per chr only</span></span></code></pre></div>
+<pre><code>## [1] 1174   15</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>tophit_eval<span class="ot">&lt;-</span> blastout <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(qseqid, sseqid) <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">the_rank  =</span> <span class="fu">rank</span>(evalue, <span class="at">ties.method =</span> <span class="st">&quot;random&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(the_rank <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>the_rank) <span class="co"># pick the ones with the lowest e-value</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">setdiff</span>(tophit<span class="sc">$</span>qseqid,tophit_eval<span class="sc">$</span>qseqid) <span class="co"># same! whether we ranked based on percent id or e val</span></span></code></pre></div>
+<pre><code>## character(0)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>tophitY<span class="ot">&lt;-</span><span class="fu">filter</span>(tophit,<span class="fu">grepl</span>(<span class="st">&quot;Y.&quot;</span>,sseqid)) <span class="co"># get all the Y1 and Y2 hits</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophitY) <span class="co"># 418 genes have a top hit on Y1 or Y2</span></span></code></pre></div>
+<pre><code>## [1] 418  15</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY, sseqid <span class="sc">==</span> <span class="st">&quot;Y1&quot;</span>)) <span class="co"># 198 on Y1</span></span></code></pre></div>
+<pre><code>## [1] 198  15</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY, sseqid <span class="sc">==</span> <span class="st">&quot;Y2&quot;</span>)) <span class="co"># 220 on Y2</span></span></code></pre></div>
+<pre><code>## [1] 220  15</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># what is the proportion of query gene aligned to hap2?</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>tophitY_prop<span class="ot">&lt;-</span> tophitY <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">alignedpropn =</span> length<span class="sc">/</span>qlen) </span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="do">## filter out genes that have less than half of their sequence length aligned to hap2</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>tophitY_partialloss <span class="ot">&lt;-</span> tophitY_prop <span class="sc">%&gt;%</span> <span class="fu">filter</span>(alignedpropn <span class="sc">&lt;</span> <span class="fl">0.5</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">#print(tophitY_partialloss)</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophitY_partialloss) <span class="co"># 371 genes</span></span></code></pre></div>
+<pre><code>## [1] 370  16</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY_partialloss, sseqid <span class="sc">==</span> <span class="st">&quot;Y1&quot;</span>)) <span class="co"># 168 on Y1</span></span></code></pre></div>
+<pre><code>## [1] 168  16</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY_partialloss, sseqid <span class="sc">==</span> <span class="st">&quot;Y2&quot;</span>)) <span class="co"># 203 on Y2</span></span></code></pre></div>
+<pre><code>## [1] 202  16</code></pre>
+<p>e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one
+with 98, one with 83. all on X</p>
 </div>
 <div id="plotting" class="section level4">
 <h4>plotting</h4>
@@ -1231,6 +1253,7 @@ blast_hap2loss.sh</p>
        <li><a href="#data-cleaning" id="toc-data-cleaning">data
        cleaning</a>
        <ul>
+       <li><a href="#pre-cleaning-using-grep" id="toc-pre-cleaning-using-grep">pre-cleaning using grep</a></li>
        <li><a href="#raw-files" id="toc-raw-files">raw files</a></li>
        </ul></li>
        <li><a href="#get-rid-of-pgs-w-non-syn-og-members" id="toc-get-rid-of-pgs-w-non-syn-og-members">get rid of pgs w
@@ -1247,6 +1270,8 @@ blast_hap2loss.sh</p>
        <ul>
        <li><a href="#blast" id="toc-blast">BLAST</a></li>
        </ul></li>
+       <li><a href="#futher-analysis-of-blast-output-in-r" id="toc-futher-analysis-of-blast-output-in-r">futher analysis of
+       blast output in R</a></li>
        <li><a href="#plotting" id="toc-plotting">plotting</a></li>
        </ul></li>
        </ul>
