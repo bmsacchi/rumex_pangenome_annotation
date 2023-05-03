@@ -152,7 +152,7 @@ dim(tophitY) # 418 genes have a top hit on Y1 or Y2
 dim(filter(tophitY, sseqid == "Y1")) # 198 on Y1
 dim(filter(tophitY, sseqid == "Y2")) # 220 on Y2
 # what is the proportion of query gene aligned to hap2?
-t#ophitY_prop<- tophitY #%>% mutate(alignedpropn = length/qlen) 
+#tophitY_prop<- tophitY #%>% mutate(alignedpropn = length/qlen) 
 ## filter out genes that have less than half of their sequence length aligned to hap2
 tophitY_partialloss <- tophitY %>% filter(alignedpropn < 0.5)
 tophitY_notloss <- tophitY %>% filter(alignedpropn > 0.5)
@@ -164,8 +164,58 @@ dim(filter(tophitY_partialloss, sseqid == "Y2")) # 203 on Y2
 ```
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 
-#### plotting
+## control/opposite - what about hap1 gene loss
+control-ish (aka is there X loss?)
 ```{r}
+hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
+
+nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
+
+onlysyn2<-hap2_raw %>% filter(!(pgID%in%nsorths$pgID)) # 30505 genes remain?
+
+
+onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
+hasanortho<-onlysyn %>% filter((hap1!=""|hap2!="")&salicifolius!="")
+
+hap1_yloss_redo<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #number doesn't change (expected)
+
+hap2_xloss<-hasanortho %>% filter(hap1=="" & hap2!="" & salicifolius!="")  #number doesn't change (expected)
+
+a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+
+b_xloss<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
+  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
+
+pars_xloss <- hap2_xloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_xloss_pars <-pars_xloss %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
+
+total_pangenes_redo<-hasanortho %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_total_pangenes_redo <-total_pangenes_redo %>% group_by(region) %>% summarise(n=n()) %>% 
+  filter(!is.na(region))
+
+chrpropnPAR_xloss<-full_join(summary_total_pangenes_redo,summary_xloss_pars,by="region",suffix=c(".total",".notonhap1")) %>% 
+   mutate(., propn=n.notonhap1/n.total) %>% mutate(.,percent = propn*100) %>%
+   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
+## plot proportions 
+
+ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
+  theme_classic() + 
+  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
+ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
 ```
 
 

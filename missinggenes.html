@@ -1207,9 +1207,9 @@ hap2.</p>
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co"># group by gene and chromosome match, mutate ranking pid with highest value having rank 1</span></span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>tophit<span class="ot">&lt;-</span> blastout <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(qseqid, sseqid) <span class="sc">%&gt;%</span></span>
 <span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">the_rank  =</span> <span class="fu">rank</span>(<span class="sc">-</span>pident, <span class="at">ties.method =</span> <span class="st">&quot;random&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(the_rank <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>the_rank)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(the_rank <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>the_rank) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">alignedpropn =</span> length<span class="sc">/</span>qlen) </span>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophit) <span class="co">#1174 genes based on top hit per chr only</span></span></code></pre></div>
-<pre><code>## [1] 1174   15</code></pre>
+<pre><code>## [1] 1174   16</code></pre>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>tophit_eval<span class="ot">&lt;-</span> blastout <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(qseqid, sseqid) <span class="sc">%&gt;%</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">the_rank  =</span> <span class="fu">rank</span>(evalue, <span class="at">ties.method =</span> <span class="st">&quot;random&quot;</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(the_rank <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>the_rank) <span class="co"># pick the ones with the lowest e-value</span></span>
@@ -1218,27 +1218,30 @@ hap2.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>tophitY<span class="ot">&lt;-</span><span class="fu">filter</span>(tophit,<span class="fu">grepl</span>(<span class="st">&quot;Y.&quot;</span>,sseqid)) <span class="co"># get all the Y1 and Y2 hits</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophitY) <span class="co"># 418 genes have a top hit on Y1 or Y2</span></span></code></pre></div>
-<pre><code>## [1] 418  15</code></pre>
+<pre><code>## [1] 418  16</code></pre>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY, sseqid <span class="sc">==</span> <span class="st">&quot;Y1&quot;</span>)) <span class="co"># 198 on Y1</span></span></code></pre></div>
-<pre><code>## [1] 198  15</code></pre>
+<pre><code>## [1] 198  16</code></pre>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY, sseqid <span class="sc">==</span> <span class="st">&quot;Y2&quot;</span>)) <span class="co"># 220 on Y2</span></span></code></pre></div>
-<pre><code>## [1] 220  15</code></pre>
+<pre><code>## [1] 220  16</code></pre>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># what is the proportion of query gene aligned to hap2?</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>tophitY_prop<span class="ot">&lt;-</span> tophitY <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">alignedpropn =</span> length<span class="sc">/</span>qlen) </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">#tophitY_prop&lt;- tophitY #%&gt;% mutate(alignedpropn = length/qlen) </span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="do">## filter out genes that have less than half of their sequence length aligned to hap2</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>tophitY_partialloss <span class="ot">&lt;-</span> tophitY_prop <span class="sc">%&gt;%</span> <span class="fu">filter</span>(alignedpropn <span class="sc">&lt;</span> <span class="fl">0.5</span>)</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">#print(tophitY_partialloss)</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophitY_partialloss) <span class="co"># 371 genes</span></span></code></pre></div>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>tophitY_partialloss <span class="ot">&lt;-</span> tophitY <span class="sc">%&gt;%</span> <span class="fu">filter</span>(alignedpropn <span class="sc">&lt;</span> <span class="fl">0.5</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>tophitY_notloss <span class="ot">&lt;-</span> tophitY <span class="sc">%&gt;%</span> <span class="fu">filter</span>(alignedpropn <span class="sc">&gt;</span> <span class="fl">0.5</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co">#print(tophitY_partialloss)</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(tophitY_partialloss) <span class="co"># 371 genes</span></span></code></pre></div>
 <pre><code>## [1] 370  16</code></pre>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY_partialloss, sseqid <span class="sc">==</span> <span class="st">&quot;Y1&quot;</span>)) <span class="co"># 168 on Y1</span></span></code></pre></div>
-<pre><code>## [1] 168  16</code></pre>
+<pre><code>## [1] 169  16</code></pre>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">filter</span>(tophitY_partialloss, sseqid <span class="sc">==</span> <span class="st">&quot;Y2&quot;</span>)) <span class="co"># 203 on Y2</span></span></code></pre></div>
-<pre><code>## [1] 202  16</code></pre>
+<pre><code>## [1] 201  16</code></pre>
 <p>e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one
 with 98, one with 83. all on X</p>
 </div>
-<div id="plotting" class="section level4">
-<h4>plotting</h4>
+<div id="opposite---what-about-hap1-gene-loss" class="section level4">
+<h4>opposite - what about hap1 gene loss</h4>
+<p>control-ish (aka is there X loss?)</p>
 </div>
 </div>
 </div>
@@ -1272,7 +1275,8 @@ with 98, one with 83. all on X</p>
        </ul></li>
        <li><a href="#futher-analysis-of-blast-output-in-r" id="toc-futher-analysis-of-blast-output-in-r">futher analysis of
        blast output in R</a></li>
-       <li><a href="#plotting" id="toc-plotting">plotting</a></li>
+       <li><a href="#opposite---what-about-hap1-gene-loss" id="toc-opposite---what-about-hap1-gene-loss">opposite - what
+       about hap1 gene loss</a></li>
        </ul></li>
        </ul>
      </div>

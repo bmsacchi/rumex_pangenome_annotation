@@ -1,0 +1,17 @@
+---
+title: "hap1 loss - control"
+output:
+  rmdformats::html_clean:
+    code_folding: show
+    default_style: light
+    toc_depth: 6
+    fig_caption: yes
+---
+
+
+
+## control/opposite - what about hap1 gene loss
+control-ish (aka is there X loss?)
+```{r}
+
+```
