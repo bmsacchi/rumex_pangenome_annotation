@@ -25,27 +25,27 @@ Loading in wide format from query_pangenes() for each possible reference and bed
 hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
 hap2_raw<-data.table::fread("pg_hap2_wide_synonly.txt")
 sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
+# this file also contains nsorths
 hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
-
-hap1_bed<-vroom("hap1.bed", col_names = F)
-
+hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
+#bedfile - mayb enot needed at the moment
+#hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
-### get rid of pgs w non-syn OG members
+### Filtering pangenome IDs w NS orths
+Eliminating pangenome ID groups w non-syn orthogroup members. This is to get a more conservative set of "gene loss" candidates. NS orths are still of interest will be analyzed separately.
 ```{r}
+# NSorths in the hap1_nonsyn file are annotated with a *
+# creating a list with grepl - any entry with a *
 nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
-
-onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain?
-
-
-onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
-
+# filtering out any pgIDs in that set
+onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
+# same with salicifolius
+onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
 ```
-
 ### Gene loss on Y 
 Identify genes that are shared by salicifolius and hap1, but not hap2.
 ```{r}
 #hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")
-
 #write.csv(hap1_yloss, "hap1sal_nohap2_syn.csv")
 ```
 ### PARS and correct denominator
@@ -88,7 +88,7 @@ chrpropnPAR_redo<-full_join(summary_total_pangenes_redo,summary_yloss_pars_redo,
 ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
   theme_classic() + 
   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
+#ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
 ```
 
 #### results so far
@@ -212,7 +212,7 @@ chrpropnPAR_xloss<-full_join(summary_total_pangenes_redo,summary_xloss_pars,by="
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 ## plot proportions 
 
-ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
+ggplot(chrpropnPAR_xloss) + geom_col(aes(x=region,y=propn)) + 
   theme_classic() + 
   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
 ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 

@@ -28,5 +28,6 @@ hap1_sequences.fa
 NChap1_final.all.maker.transcripts.fasta.fai
 NChap1.out.fasta.fai
 NChap1.out.fasta
- NChap1_final.all.maker.transcripts.out.fasta
+NChap1_final.all.maker.transcripts.out.fasta
 test
+.DS_Store
