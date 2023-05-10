@@ -42,61 +42,49 @@ onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
 # same with salicifolius
 onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
 ```
-### Gene loss on Y 
-Identify genes that are shared by salicifolius and hap1, but not hap2.
+### Gene loss on Y
+Identify genes that are shared by salicifolius and hap1, but not hap2. Adding position of PARS and correct denominator for calculating proportions.
 ```{r}
-#hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")
-#write.csv(hap1_yloss, "hap1sal_nohap2_syn.csv")
-```
-### PARS and correct denominator
-```{r}
-hasanortho<-onlysyn %>% filter((hap1!=""|hap2!="")&salicifolius!="")
+# keep only genes with at least one ortholog in another genome
+hasanortho<-onlysyn %>% 
+  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
+# yloss genes - have only ortho shared b/w hap1 and sal. y loss.
+hap1_yloss<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
+#hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
 
-hap1_yloss_redo<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  #number doesn't change (expected)
-
-a_redo<-hap1_yloss_redo %>% group_by(interpChr) %>% summarise(n=n()) %>% 
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-
-b_redo<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="X")
-
-yloss_pars_redo <- hap1_yloss_redo %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
                         if_else(interpChr=="X" & end>367000000,"PAR2",
                         if_else(interpChr=="A1","A1",
                         if_else(interpChr=="A2","A2",
                         if_else(interpChr=="A4","A4",NA))))))))
-summary_yloss_pars_redo <-yloss_pars_redo %>% group_by(region) %>% summarise(n=n()) %>% 
+summary_yloss_pars <-yloss_pars %>% tibble() %>% group_by(region) %>% summarise(n_yloss=n()) %>% 
   filter(!is.na(region))
 
-total_pangenes_redo<-hasanortho %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+total_pangenes<-hasanortho %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
                         if_else(interpChr=="X" & end>367000000,"PAR2",
                         if_else(interpChr=="A1","A1",
                         if_else(interpChr=="A2","A2",
                         if_else(interpChr=="A4","A4",NA))))))))
-summary_total_pangenes_redo <-total_pangenes_redo %>% group_by(region) %>% summarise(n=n()) %>% 
+summary_total_pangenes<-total_pangenes %>% tibble() %>% group_by(region) %>% summarise(n_total=n()) %>% 
   filter(!is.na(region))
 
-chrpropnPAR_redo<-full_join(summary_total_pangenes_redo,summary_yloss_pars_redo,by="region",suffix=c(".total",".notonhap2")) %>% 
-   mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
-   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
+# chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
+#    mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
+#    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 ## plot proportions 
 
-ggplot(chrpropnPAR_redo) + geom_col(aes(x=region,y=propn)) + 
-  theme_classic() + 
-  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-#ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
+# ggplot(chrpropnPAR) + geom_col(aes(x=region,y=propn)) + 
+#   theme_classic() + 
+#   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
+#ggsave("pangenepropn_yloss_may9.png", width=6,height=4) 
 ```
 
 #### results so far
 genes missing from hap2 
-```{r}
-library(knitr)
-kable(chrpropnPAR_redo)
-```
 
 ```{r}
 
@@ -110,9 +98,9 @@ kable(chrpropnPAR_redo)
 #### list for blasting genes against hap2 to confirm their loss
 
 ```{r}
-genelisth1<-hap1_yloss_redo %>% select(hap1)
+genelisth1<-hap1_yloss %>% select(hap1)
 #genelistsal<-hap1_yloss_redo %>% select(salicifolius)
-write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
+#write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
 ##### BLAST
@@ -157,10 +145,41 @@ dim(filter(tophitY, sseqid == "Y2")) # 220 on Y2
 tophitY_partialloss <- tophitY %>% filter(alignedpropn < 0.5)
 tophitY_notloss <- tophitY %>% filter(alignedpropn > 0.5)
 
-#print(tophitY_partialloss)
-dim(tophitY_partialloss) # 371 genes
-dim(filter(tophitY_partialloss, sseqid == "Y1")) # 168 on Y1
-dim(filter(tophitY_partialloss, sseqid == "Y2")) # 203 on Y2
+tophit_partial<- tophit %>% filter(alignedpropn <= 0.5)
+tophit_notloss<-tophit %>% filter(alignedpropn > 0.5)
+## final tabulation
+
+yloss_blast <- hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid) %>%
+  mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA))))))))
+summary_yloss_blast <-yloss_blast %>% tibble() %>% group_by(region) %>% summarise(n_blastconfirmedloss=n()) %>% 
+  filter(!is.na(region))
+
+yloss_partial <- hap1_yloss  %>% filter(hap1%in%tophit_partial$qseqid) %>%
+  mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(interpChr=="X" & end>367000000,"PAR2",
+                        if_else(interpChr=="A1","A1",
+                        if_else(interpChr=="A2","A2",
+                        if_else(interpChr=="A4","A4",NA)))))))) 
+summary_yloss_partial <-yloss_partial %>% tibble() %>% group_by(region) %>% summarise(n_partialloss=n()) %>% 
+  filter(!is.na(region))
+mylist<-list(summary_total_pangenes,summary_yloss_pars,summary_yloss_blast,summary_yloss_partial)
+
+combinedsummary<-mylist %>% purrr::reduce(left_join,by="region")
+propnsummary<-combinedsummary %>%
+  mutate(propn_yloss=n_yloss/n_total, 
+         propn_blastconfirmedloss=n_blastconfirmedloss/n_total,
+         propn_partialloss=n_partialloss/n_total) %>% 
+  mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
+
+print(propnsummary)
 ```
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 
@@ -212,10 +231,10 @@ chrpropnPAR_xloss<-full_join(summary_total_pangenes_redo,summary_xloss_pars,by="
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 ## plot proportions 
 
-ggplot(chrpropnPAR_xloss) + geom_col(aes(x=region,y=propn)) + 
-  theme_classic() + 
-  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
+#ggplot(chrpropnPAR_xloss) + geom_col(aes(x=region,y=propn)) + 
+#  theme_classic() + 
+#  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
+#ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
 ```
 
 
