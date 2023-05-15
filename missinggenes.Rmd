@@ -41,6 +41,7 @@ nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
 # same with salicifolius
 onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
+
 ```
 ### Gene loss on Y
 Identify genes that are shared by salicifolius and hap1, but not hap2. Adding position of PARS and correct denominator for calculating proportions.
@@ -101,7 +102,7 @@ genes missing from hap2
 genelisth1<-hap1_yloss %>% select(hap1)
 genelisth1_chr<-hap1_yloss %>% select(hap1,interpChr)
 #genelistsal<-hap1_yloss_redo %>% select(salicifolius)
-#write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t")
+write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
 ##### BLAST
@@ -162,7 +163,10 @@ tophit_samechr<- tophit_geneonly %>%
   filter(str_detect(sseqid,matchchr))
 tophit_partial<- tophit_samechr %>% filter(alignedpropn <= 0.5)
 tophit_notloss<-tophit_samechr %>% filter(alignedpropn > 0.5)
-                 
+
+updated_genelist <- genelisth1 %>% filter(!hap1%in%tophit_notloss$qseqid) #%>%filter()  
+write.table(updated_genelist,"genelisthap1_blast.txt",quote=FALSE,sep="\t",row.names=F)
+
 ```
 
 ```{r}
