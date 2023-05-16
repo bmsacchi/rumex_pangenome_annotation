@@ -47,12 +47,15 @@ onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
 Identify genes that are shared by salicifolius and hap1, but not hap2. Adding position of PARS and correct denominator for calculating proportions.
 ```{r}
 # keep only genes with at least one ortholog in another genome
-hasanortho<-onlysyn %>% 
-  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
+#hasanortho<-onlysyn %>% 
+#  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
+hasanortho_justsal<-onlysyn %>% 
+  filter((hap1!=""|hap2!="")&salicifolius!="")#|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
 # yloss genes - have only ortho shared b/w hap1 and sal. y loss.
-hap1_yloss<-hasanortho %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
+#write_delim(hasanortho,"denomgenelist.txt",delim="\t")
+write_delim(hasanortho_justsal,"denomgenelist_salorth.txt",delim="\t")
 #hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
-
+hasanortho<-hasanortho_justsal
 yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
@@ -99,8 +102,8 @@ genes missing from hap2
 #### list for blasting genes against hap2 to confirm their loss
 
 ```{r}
-genelisth1<-hap1_yloss %>% select(hap1)
-genelisth1_chr<-hap1_yloss %>% select(hap1,interpChr)
+genelisth1<-hap1_yloss %>% dplyr::select(hap1)
+genelisth1_chr<-hap1_yloss %>% dplyr::select(hap1,interpChr)
 #genelistsal<-hap1_yloss_redo %>% select(salicifolius)
 write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
@@ -122,7 +125,7 @@ blastout<-read_tsv("blast_h2genome.tsv",
 
 blast_pos<-full_join(blastout,hap2_raw,by=c("qseqid"="hap1"))  %>% add_count(qseqid) 
 ### which genes, out of any, are no hits in hap2 genome
-hits<-blastout %>% select(qseqid) %>% distinct()
+hits<-blastout %>% dplyr::select(qseqid) %>% distinct()
 nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genelist do not have a hit
 # not a surprise, its a big genome! and lots might be garbage!
 #okhit<- blastout %>% filter(pident > 90) #19537/25326 are 90% id
@@ -130,7 +133,7 @@ nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genel
 # group by gene and chromosome match, mutate ranking pid with highest value having rank 1
 tophit<- blastout %>% group_by(qseqid, sseqid) %>%
   mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
-  filter(the_rank == 1) %>% select(-the_rank) %>% mutate(alignedpropn = length/qlen) 
+  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn = length/qlen) 
 #dim(tophit) #1174 genes based on top hit per chr only
 #tophit_eval<- blastout %>% group_by(qseqid, sseqid) %>%
 #  mutate(the_rank  = rank(evalue, ties.method = "random")) %>%
@@ -142,7 +145,7 @@ tophit<- blastout %>% group_by(qseqid, sseqid) %>%
 #dim(filter(tophitY, sseqid == "Y2")) # 220 on Y2
 tophit_geneonly<- blastout %>% group_by(qseqid) %>%
   mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
-  filter(the_rank == 1) %>% select(-the_rank) %>% mutate(alignedpropn = length/qlen)          
+  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn = length/qlen)          
 # what is the proportion of query gene aligned to hap2?
 #tophitY_prop<- tophitY #%>% mutate(alignedpropn = length/qlen) 
 ## filter out genes that have less than half of their sequence length aligned to hap2
@@ -201,6 +204,7 @@ propnsummary<-combinedsummary %>%
   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 
 print(propnsummary)
+write_delim(propnsummary,"summary_yloss.txt")
 ```
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 
@@ -216,9 +220,11 @@ onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
 
 #onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
 #hasanortho<-onlysyn2 %>% filter((hap1!=""|hap2!="")&salicifolius!="")
-hasanortho2<-onlysyn2 %>% 
-  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
-
+#hasanortho2<-onlysyn2 %>% 
+#  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
+hasanortho2_fixed<-onlysyn2 %>% 
+  filter(((hap1!=""|hap2!="")&salicifolius!=""))
+hasanortho2<-hasanortho2_fixed
 hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")  #number doesn't change (expected)
 
 a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
@@ -258,6 +264,8 @@ chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="regi
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
 ## plot proportions 
 print(chrpropnPAR_xloss)
+write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
+
 #ggplot(chrpropnPAR_xloss) + geom_col(aes(x=region,y=propn)) + 
 #  theme_classic() + 
 #  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")

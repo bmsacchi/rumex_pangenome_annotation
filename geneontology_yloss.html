@@ -996,11 +996,11 @@ margin-left: 0 !important;
    
 <!-- Don't indent these lines or it will mess pre blocks indentation --> 
 <div id="content">
-<div id="gene-ontology-enrichment-using-togo" class="section level2">
-<h2>Gene ontology enrichment using toGO?</h2>
-<p>What do I need? * list of y loss candidate genes * information from
-the annotation? * idk!!!!</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div>
+<div id="gene-ontology-enrichment-using-topgo" class="section level2">
+<h2>Gene ontology enrichment using topGO</h2>
+<p>Question: are there any patterns in the types of genes lost (present
+on X, missing on Y?) ### Loading packages and data</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;tidyverse&quot;</span>)</span></code></pre></div>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
 ## ✔ dplyr     1.1.2     ✔ readr     2.1.4
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
@@ -1049,7 +1049,7 @@ the annotation? * idk!!!!</p>
 ## Loading required package: grid</code></pre>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;biomaRt&quot;</span>)</span></code></pre></div>
 <pre><code>## Warning: package &#39;biomaRt&#39; was built under R version 4.2.3</code></pre>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(topGO)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;topGO&quot;</span>)</span></code></pre></div>
 <pre><code>## Loading required package: Biobase
 ## Welcome to Bioconductor
 ## 
@@ -1136,19 +1136,27 @@ the annotation? * idk!!!!</p>
 ## 
 ##     depth</code></pre>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;GO.db&quot;</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>genelist<span class="ot">&lt;-</span><span class="fu">read_table</span>(<span class="st">&quot;genelisthap1.txt&quot;</span>)</span></code></pre></div>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#genelist&lt;-read_table(&quot;genelisthap1.txt&quot;)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="do">### list of blast-confirmed yloss genes</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>genelist_blast<span class="ot">&lt;-</span><span class="fu">read_table</span>(<span class="st">&quot;genelisthap1_blast.txt&quot;</span>)</span></code></pre></div>
 <pre><code>## 
 ## ── Column specification ────────────────────────────────────────────────────────
 ## cols(
 ##   hap1 = col_character()
 ## )</code></pre>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>genelist_blast<span class="ot">&lt;-</span><span class="fu">read_table</span>(<span class="st">&quot;genelisthap1_blast.txt&quot;</span>)</span></code></pre></div>
-<pre><code>## 
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">### list of genes that pass the filter used in the denominator of missingness analysis</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>denomGenes<span class="ot">&lt;-</span><span class="fu">read_delim</span>(<span class="st">&quot;denomgenelist_salorth.txt&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>(<span class="fu">grepl</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">|&quot;</span>,hap1))) <span class="co">#%&gt;% dplyr::select(hap1) </span></span></code></pre></div>
+<pre><code>## Rows: 10515 Columns: 12
 ## ── Column specification ────────────────────────────────────────────────────────
-## cols(
-##   hap1 = col_character()
-## )</code></pre>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>annotation<span class="ot">&lt;-</span><span class="fu">read_delim</span>(<span class="st">&quot;NChap1_final.all.gff&quot;</span>,<span class="at">comment =</span> <span class="st">&quot;#&quot;</span>,<span class="at">col_names =</span> F, <span class="at">delim =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>)</span></code></pre></div>
+## Delimiter: &quot;\t&quot;
+## chr (7): interpChr, repGene, genome, chr, hap1, salicifolius, hap2
+## dbl (5): pgID, interpOrd, og, start, end
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">### raw annotation file containing genes w annotated GO terms (not all genes have)  </span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>annotation<span class="ot">&lt;-</span><span class="fu">read_delim</span>(<span class="st">&quot;NChap1_final.all.gff&quot;</span>,<span class="at">comment =</span> <span class="st">&quot;#&quot;</span>,<span class="at">col_names =</span> F, <span class="at">delim =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>)</span></code></pre></div>
 <pre><code>## Rows: 647813 Columns: 9
 ## ── Column specification ────────────────────────────────────────────────────────
 ## Delimiter: &quot;\t&quot;
@@ -1157,335 +1165,1010 @@ the annotation? * idk!!!!</p>
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>GO_anno <span class="ot">&lt;-</span> annotation <span class="sc">%&gt;%</span> <span class="fu">filter</span>(X3 <span class="sc">==</span> <span class="st">&quot;gene&quot;</span> ) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(X9) <span class="sc">%&gt;%</span> </span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(X9,<span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;anno&quot;</span>,<span class="st">&quot;GOterm&quot;</span>),<span class="at">sep =</span><span class="st">&quot;Ontology_term=&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(GOterm, <span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;GOterm&quot;</span>,<span class="st">&quot;notes&quot;</span>),<span class="at">sep=</span><span class="st">&quot;Note=&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="do">### parsing to extract GO terms, IDs, etc.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>GO_anno <span class="ot">&lt;-</span> annotation <span class="sc">%&gt;%</span> <span class="fu">filter</span>(X3 <span class="sc">==</span> <span class="st">&quot;gene&quot;</span> ) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(X9) <span class="sc">%&gt;%</span> </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(X9,<span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;anno&quot;</span>,<span class="st">&quot;GOterm&quot;</span>),<span class="at">sep =</span><span class="st">&quot;Ontology_term=&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(GOterm, <span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;GOterm&quot;</span>,<span class="st">&quot;notes&quot;</span>),<span class="at">sep=</span><span class="st">&quot;Note=&quot;</span>) <span class="co">#%&gt;%</span></span></code></pre></div>
 <pre><code>## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 23400 rows [12, 17, 19,
 ## 20, 28, 29, 30, 32, 33, 35, 43, 45, 50, 53, 54, 55, 56, 57, 61, 63, ...].</code></pre>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="do">## create a gene GOs mapping file?</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a> geneID2GO <span class="ot">&lt;-</span> <span class="fu">readMappings</span>(<span class="at">file =</span> <span class="fu">system.file</span>(<span class="st">&quot;examples/geneid2go.map&quot;</span>, <span class="at">package =</span> <span class="st">&quot;topGO&quot;</span>))</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>what<span class="ot">&lt;-</span><span class="fu">read_table</span>(<span class="at">file =</span> <span class="fu">system.file</span>(<span class="st">&quot;examples/geneid2go.map&quot;</span>, <span class="at">package =</span> <span class="st">&quot;topGO&quot;</span>))</span></code></pre></div>
-<pre><code>## 
-## ── Column specification ────────────────────────────────────────────────────────
-## cols(
-##   `068724` = col_character(),
-##   `GO:0005488,` = col_character(),
-##   `GO:0003774,` = col_character(),
-##   `GO:0001539,` = col_character(),
-##   `GO:0006935,` = col_character(),
-##   `GO:0009288` = col_character()
-## )</code></pre>
-<pre><code>## Warning: 97 parsing failures.
-## row col  expected     actual                                                                                          file
-##   1  -- 6 columns 7 columns  &#39;/Library/Frameworks/R.framework/Versions/4.2/Resources/library/topGO/examples/geneid2go.map&#39;
-##   2  -- 6 columns 14 columns &#39;/Library/Frameworks/R.framework/Versions/4.2/Resources/library/topGO/examples/geneid2go.map&#39;
-##   3  -- 6 columns 17 columns &#39;/Library/Frameworks/R.framework/Versions/4.2/Resources/library/topGO/examples/geneid2go.map&#39;
-##   4  -- 6 columns 11 columns &#39;/Library/Frameworks/R.framework/Versions/4.2/Resources/library/topGO/examples/geneid2go.map&#39;
-##   5  -- 6 columns 8 columns  &#39;/Library/Frameworks/R.framework/Versions/4.2/Resources/library/topGO/examples/geneid2go.map&#39;
-## ... ... ......... .......... .............................................................................................
-## See problems(...) for more details.</code></pre>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">## appears to have genes followed by comma separated list of GOs??</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="do">## yay easy!</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(GO_anno)                                                                                       </span></code></pre></div>
-<pre><code>## # A tibble: 6 × 3
-##   anno                                                              GOterm notes
-##   &lt;chr&gt;                                                             &lt;chr&gt;  &lt;chr&gt;
-## 1 ID=NChap1_final_00037420;Name=NChap1_final_00037420;Alias=maker-… GO:00… Simi…
-## 2 ID=NChap1_final_00037421;Name=NChap1_final_00037421;Alias=snap_m… GO:00… Simi…
-## 3 ID=NChap1_final_00037422;Name=NChap1_final_00037422;Alias=maker-… GO:00… Simi…
-## 4 ID=NChap1_final_00037423;Name=NChap1_final_00037423;Alias=maker-… GO:00… Simi…
-## 5 ID=NChap1_final_00035713;Name=NChap1_final_00035713;Alias=snap_m… GO:00… Simi…
-## 6 ID=NChap1_final_00035714;Name=NChap1_final_00035714;Alias=maker-… GO:00… Simi…</code></pre>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>GO_map<span class="ot">&lt;-</span> GO_anno <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(GOterm)) <span class="sc">%&gt;%</span>  </span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(anno, <span class="st">&quot;;.+&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(ID, <span class="st">&quot;ID=&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(ID, <span class="st">&quot;-RA&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">GOterm =</span> <span class="fu">str_replace</span>(GOterm, <span class="st">&quot;;&quot;</span>,<span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">#mutate(GOterm = str_replace_all(GOterm, &quot;,&quot;,&quot;, &quot;)) %&gt;%</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(ID,GOterm) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(ID, GOterm, <span class="at">.keep_all =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="do">## woo!</span></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.table</span>(GO_map,<span class="st">&quot;geneIDsGO.map&quot;</span>, <span class="at">row.names=</span>F,<span class="at">col.names =</span> F,<span class="at">quote =</span> F)</span></code></pre></div>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>geneID2GO<span class="ot">&lt;-</span><span class="fu">readMappings</span>(<span class="at">file=</span><span class="st">&quot;geneIDsGO.map&quot;</span>,<span class="at">sep=</span><span class="st">&quot; &quot;</span>,<span class="at">IDsep=</span><span class="st">&quot;,&quot;</span>) <span class="co"># woo!</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">#str(head(geneID2GO))</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>geneNames <span class="ot">&lt;-</span> <span class="fu">names</span>(geneID2GO)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">#myInterestingGenes &lt;- sample(geneNames, length(geneNames) / 10)</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>myInterestingGenes<span class="ot">&lt;-</span><span class="fu">as.character</span>(genelist_blast<span class="sc">$</span>hap1)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>geneList <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">as.integer</span>(geneNames <span class="sc">%in%</span> myInterestingGenes))</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co">#blah&lt;-as.integer(genelist %in% genelist_blast) </span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co">#factor(blah)</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(geneList) <span class="ot">&lt;-</span> geneNames</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(geneList)</span></code></pre></div>
-<pre><code>##  Factor w/ 2 levels &quot;0&quot;,&quot;1&quot;: 1 1 1 1 1 1 1 1 1 1 ...
-##  - attr(*, &quot;names&quot;)= chr [1:15789] &quot;NChap1_final_00037420&quot; &quot;NChap1_final_00037421&quot; &quot;NChap1_final_00037422&quot; &quot;NChap1_final_00037423&quot; ...</code></pre>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>GOdata_BP <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;BP&quot;</span>), <span class="at">allGenes =</span> geneList,</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> myInterestingGenes, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>  <span class="co">#filter()</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="do">### create a gene GOs mapping file - matches example in topGO. </span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Gene names and comma separated GO terms</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>GO_map<span class="ot">&lt;-</span> GO_anno <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(GOterm)) <span class="sc">%&gt;%</span>  </span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(anno, <span class="st">&quot;;.+&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(ID, <span class="st">&quot;ID=&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ID =</span> <span class="fu">str_replace</span>(ID, <span class="st">&quot;-RA&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">GOterm =</span> <span class="fu">str_replace</span>(GOterm, <span class="st">&quot;;&quot;</span>,<span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(ID,GOterm) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(ID, GOterm, <span class="at">.keep_all =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># same as above but only include the denominator set from the missinggenes R script</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>GO_map_denom<span class="ot">&lt;-</span>GO_map <span class="sc">%&gt;%</span> <span class="fu">filter</span>(ID <span class="sc">%in%</span> denomGenes<span class="sc">$</span>hap1) </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">#only 5000? Not all genes have a go term and not all in GO_map have sal orth</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="do">## writing to .map file. readMappings() only accepts as an external file</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="fu">write.table</span>(GO_map_denom,<span class="st">&quot;geneIDsGO_denom.map&quot;</span>, <span class="at">row.names=</span>F,<span class="at">col.names =</span> F,<span class="at">quote =</span> F)</span></code></pre></div>
+<div id="read-in-genegos-mapping-file" class="section level3">
+<h3>Read in gene:GOs mapping file</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>geneID2GO<span class="ot">&lt;-</span><span class="fu">readMappings</span>(<span class="at">file=</span><span class="st">&quot;geneIDsGO_denom.map&quot;</span>,<span class="at">sep=</span><span class="st">&quot; &quot;</span>,<span class="at">IDsep=</span><span class="st">&quot;,&quot;</span>) </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>geneNames <span class="ot">&lt;-</span> <span class="fu">names</span>(geneID2GO)</span></code></pre></div>
+</div>
+<div id="filter-interesting-genes-by-x-genes-only" class="section level3">
+<h3>filter interesting genes by X genes only</h3>
+<p>Get genes missing from Y on X only - for now. Opportunity to include
+autosomal missing genes later on.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>GO_anno_X <span class="ot">&lt;-</span> annotation <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(X1 <span class="sc">==</span> <span class="st">&quot;X&quot;</span> ) <span class="sc">%&gt;%</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(X3 <span class="sc">==</span> <span class="st">&quot;gene&quot;</span> )  <span class="sc">%&gt;%</span> </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(X9,<span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;anno&quot;</span>,<span class="st">&quot;GOterm&quot;</span>),<span class="at">sep =</span><span class="st">&quot;Ontology_term=&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(GOterm, <span class="at">into=</span><span class="fu">c</span>(<span class="st">&quot;GOterm&quot;</span>,<span class="st">&quot;notes&quot;</span>),<span class="at">sep=</span><span class="st">&quot;Note=&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">anno =</span> <span class="fu">str_replace</span>(anno, <span class="st">&quot;;.+&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">anno =</span> <span class="fu">str_replace</span>(anno, <span class="st">&quot;ID=&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(anno)</span></code></pre></div>
+<pre><code>## Warning: Expected 2 pieces. Missing pieces filled with `NA` in 7631 rows [2, 4, 9, 12,
+## 13, 14, 15, 16, 20, 22, 23, 24, 25, 26, 27, 28, 31, 34, 35, 36, ...].</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>Xgenelist<span class="ot">&lt;-</span>genelist_blast <span class="sc">%&gt;%</span> <span class="fu">filter</span>(hap1 <span class="sc">%in%</span> GO_anno_X<span class="sc">$</span>anno)</span></code></pre></div>
+</div>
+<div id="create-godata-object-and-interesting-gene-list" class="section level3">
+<h3>create GOdata object and interesting gene list</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>MyInterestingGenes_X<span class="ot">&lt;-</span><span class="fu">as.character</span>(Xgenelist<span class="sc">$</span>hap1)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>geneList <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">as.integer</span>(geneNames <span class="sc">%in%</span> MyInterestingGenes_X))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(geneList) <span class="ot">&lt;-</span> geneNames</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(geneList)</span></code></pre></div>
+<pre><code>##  Factor w/ 2 levels &quot;0&quot;,&quot;1&quot;: 1 1 1 1 2 1 2 2 1 1 ...
+##  - attr(*, &quot;names&quot;)= chr [1:5486] &quot;NChap1_final_00000004&quot; &quot;NChap1_final_00000008&quot; &quot;NChap1_final_00000005&quot; &quot;NChap1_final_00000023&quot; ...</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>GOdataBP_X <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;BP&quot;</span>), <span class="at">allGenes =</span> geneList,<span class="at">description =</span> <span class="st">&quot;X genes in total set&quot;</span>,</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> MyInterestingGenes_X, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 444 GO terms found. )</code></pre>
+<pre><code>##  ( 359 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 1332 GO terms and 2700 relations. )</code></pre>
+<pre><code>##  ( 1131 GO terms and 2280 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 8378 genes annotated to the GO terms. )</code></pre>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>GOdata_MF <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;MF&quot;</span>), <span class="at">allGenes =</span> geneList,</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> myInterestingGenes, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<pre><code>##  ( 2810 genes annotated to the GO terms. )</code></pre>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>GOdataMF_X <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;MF&quot;</span>), <span class="at">allGenes =</span> geneList,</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> MyInterestingGenes_X, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 563 GO terms found. )</code></pre>
+<pre><code>##  ( 468 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 873 GO terms and 1092 relations. )</code></pre>
+<pre><code>##  ( 760 GO terms and 952 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 13534 genes annotated to the GO terms. )</code></pre>
-<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>GOdata_CC <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;CC&quot;</span>), <span class="at">allGenes =</span> geneList,</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> myInterestingGenes, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<pre><code>##  ( 4845 genes annotated to the GO terms. )</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>GOdataCC_X <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;CC&quot;</span>), <span class="at">allGenes =</span> geneList,</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> MyInterestingGenes_X, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 168 GO terms found. )</code></pre>
+<pre><code>##  ( 125 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 335 GO terms and 604 relations. )</code></pre>
+<pre><code>##  ( 282 GO terms and 510 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3292 genes annotated to the GO terms. )</code></pre>
-<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">#GOdata &lt;- new(&quot;topGOdata&quot;, ontology = &quot;MF&quot;, allGenes = geneList,</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>              <span class="co">#annot = annFUN.gene2GO, gene2GO = geneID2GO)</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>resultFisher_BP<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdata_BP, <span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+<pre><code>##  ( 1089 genes annotated to the GO terms. )</code></pre>
+</div>
+<div id="results---default" class="section level3">
+<h3>results - default</h3>
+<p>Using topGO weight/elim combo algorithm, fisher stat</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define test using the weight01 algorithm (default) with fisher</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>resultFisher_BP_X<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataBP_X, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
 <pre><code>## 
 ##           -- Weight01 Algorithm -- 
 ## 
-##       the algorithm is scoring 316 nontrivial nodes
+##       the algorithm is scoring 217 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher</code></pre>
 <pre><code>## 
 ##   Level 13:  1 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 12:  3 nodes to be scored    (0 eliminated genes)</code></pre>
+##   Level 12:  1 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 11:  10 nodes to be scored   (40 eliminated genes)</code></pre>
+##   Level 11:  5 nodes to be scored    (25 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 10:  15 nodes to be scored   (64 eliminated genes)</code></pre>
+##   Level 10:  8 nodes to be scored    (25 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 9:   28 nodes to be scored   (1091 eliminated genes)</code></pre>
+##   Level 9:   15 nodes to be scored   (418 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 8:   30 nodes to be scored   (1695 eliminated genes)</code></pre>
+##   Level 8:   19 nodes to be scored   (468 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 7:   42 nodes to be scored   (1952 eliminated genes)</code></pre>
+##   Level 7:   22 nodes to be scored   (557 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 6:   54 nodes to be scored   (3006 eliminated genes)</code></pre>
+##   Level 6:   35 nodes to be scored   (809 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 5:   62 nodes to be scored   (5032 eliminated genes)</code></pre>
+##   Level 5:   46 nodes to be scored   (1520 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 4:   38 nodes to be scored   (5652 eliminated genes)</code></pre>
+##   Level 4:   33 nodes to be scored   (1868 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 3:   24 nodes to be scored   (6923 eliminated genes)</code></pre>
+##   Level 3:   23 nodes to be scored   (2324 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 2:   8 nodes to be scored    (8162 eliminated genes)</code></pre>
+##   Level 2:   8 nodes to be scored    (2642 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 1:   1 nodes to be scored    (8349 eliminated genes)</code></pre>
-<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>resultFisher_MF<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdata_MF, <span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+##   Level 1:   1 nodes to be scored    (2777 eliminated genes)</code></pre>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>resultFisher_MF_X<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataMF_X, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
 <pre><code>## 
 ##           -- Weight01 Algorithm -- 
 ## 
-##       the algorithm is scoring 207 nontrivial nodes
+##       the algorithm is scoring 155 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher</code></pre>
 <pre><code>## 
 ##   Level 9:   4 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 8:   10 nodes to be scored   (0 eliminated genes)</code></pre>
+##   Level 8:   5 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 7:   24 nodes to be scored   (3267 eliminated genes)</code></pre>
+##   Level 7:   17 nodes to be scored   (816 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 6:   41 nodes to be scored   (3356 eliminated genes)</code></pre>
+##   Level 6:   30 nodes to be scored   (826 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 5:   47 nodes to be scored   (4674 eliminated genes)</code></pre>
+##   Level 5:   32 nodes to be scored   (1213 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 4:   50 nodes to be scored   (6405 eliminated genes)</code></pre>
+##   Level 4:   40 nodes to be scored   (1848 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 3:   21 nodes to be scored   (9475 eliminated genes)</code></pre>
+##   Level 3:   18 nodes to be scored   (2917 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 2:   9 nodes to be scored    (11010 eliminated genes)</code></pre>
+##   Level 2:   8 nodes to be scored    (3602 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 1:   1 nodes to be scored    (13239 eliminated genes)</code></pre>
-<div class="sourceCode" id="cb72"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>resultFisher_CC<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdata_CC, <span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+##   Level 1:   1 nodes to be scored    (4602 eliminated genes)</code></pre>
+<div class="sourceCode" id="cb71"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>resultFisher_CC_X<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataCC_X, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
 <pre><code>## 
 ##           -- Weight01 Algorithm -- 
 ## 
-##       the algorithm is scoring 83 nontrivial nodes
+##       the algorithm is scoring 59 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher</code></pre>
+<pre><code>## 
+##   Level 10:  1 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 9:   2 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 8:   4 nodes to be scored    (13 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 7:   5 nodes to be scored    (13 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 6:   11 nodes to be scored   (27 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 5:   10 nodes to be scored   (96 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 4:   14 nodes to be scored   (325 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 3:   9 nodes to be scored    (667 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 2:   2 nodes to be scored    (740 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 1:   1 nodes to be scored    (1082 eliminated genes)</code></pre>
+</div>
+<div id="results---default-1" class="section level3">
+<h3>results - default</h3>
+<p>note: p-values need FDR correction</p>
+<div class="sourceCode" id="cb83"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>allRes_BP <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataBP_X, <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>,</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">topNodes =</span> <span class="dv">50</span>,<span class="at">classic =</span> resultFisher_BP_X)</span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>allRes_MF <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataMF_X, <span class="at">classic =</span> resultFisher_MF_X, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>, </span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">50</span>)</span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>allRes_CC <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataCC_X, <span class="at">classic =</span> resultFisher_CC_X, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>, </span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">50</span>)</span>
+<span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdataBP_X, score(allRes_BP$classic), firstSigNodes = 5, useInfo = &#39;all&#39;)</span></span>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdataBP_X,termsP.value = allRes_BP$classic, = 5)</span></span>
+<span id="cb83-9"><a href="#cb83-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-10"><a href="#cb83-10" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_BP)</span></code></pre></div>
+<pre><code>##         GO.ID                                        Term Annotated Significant
+## 1  GO:0010876                          lipid localization        11           3
+## 2  GO:0008380                                RNA splicing        11           2
+## 3  GO:0006096                          glycolytic process        25           3
+## 4  GO:0071702                 organic substance transport        99           5
+## 5  GO:0048193                     Golgi vesicle transport        14           2
+## 6  GO:0006468                     protein phosphorylation       471          23
+## 7  GO:0007010                   cytoskeleton organization        17           2
+## 8  GO:0030001                         metal ion transport        37           3
+## 9  GO:0055086 nucleobase-containing small molecule met...        59           5
+## 10 GO:0006486                       protein glycosylation        21           2
+## 11 GO:0044238                   primary metabolic process      1808          69
+## 12 GO:0006749               glutathione metabolic process        23           2
+## 13 GO:0016043             cellular component organization       134           8
+## 14 GO:0051603 proteolysis involved in protein cataboli...        31           2
+## 15 GO:0071704         organic substance metabolic process      1882          71
+## 16 GO:1901135 carbohydrate derivative metabolic proces...        85           7
+## 17 GO:0031323    regulation of cellular metabolic process       376          16
+## 18 GO:0006334                         nucleosome assembly        10           1
+## 19 GO:0009152 purine ribonucleotide biosynthetic proce...        10           1
+## 20 GO:0051276                     chromosome organization        23           2
+## 21 GO:0051726                    regulation of cell cycle        11           1
+## 22 GO:0051246     regulation of protein metabolic process        11           1
+## 23 GO:0006091 generation of precursor metabolites and ...        37           4
+## 24 GO:0050790            regulation of catalytic activity        12           1
+## 25 GO:0071103                     DNA conformation change        12           1
+## 26 GO:0050794              regulation of cellular process       476          18
+## 27 GO:0006996                      organelle organization        53           5
+## 28 GO:0006820                             anion transport        29           2
+## 29 GO:0022607                 cellular component assembly        50           2
+## 30 GO:0006073           cellular glucan metabolic process        36           2
+## 31 GO:1901564 organonitrogen compound metabolic proces...       971          41
+## 32 GO:0007275          multicellular organism development        14           1
+## 33 GO:0006355 regulation of DNA-templated transcriptio...       361          15
+## 34 GO:0006281                                  DNA repair        40           2
+## 35 GO:0015698                   inorganic anion transport        16           1
+## 36 GO:0006952                            defense response        16           1
+## 37 GO:0044248                  cellular catabolic process        43           2
+## 38 GO:1901607       alpha-amino acid biosynthetic process        17           1
+## 39 GO:0006979                response to oxidative stress        43           2
+## 40 GO:0046907                     intracellular transport        67           3
+## 41 GO:0015979                              photosynthesis        18           1
+## 42 GO:0005984              disaccharide metabolic process        18           1
+## 43 GO:0006811                               ion transport       123           6
+## 44 GO:0006397                             mRNA processing        20           1
+## 45 GO:0009725                         response to hormone        21           1
+## 46 GO:0006886             intracellular protein transport        49           2
+## 47 GO:0006418 tRNA aminoacylation for protein translat...        22           1
+## 48 GO:0006511 ubiquitin-dependent protein catabolic pr...        24           1
+## 49 GO:0016192                  vesicle-mediated transport        69           4
+## 50 GO:0055085                     transmembrane transport       304          11
+##    Expected classic
+## 1      0.43  0.0075
+## 2      0.43  0.0653
+## 3      0.97  0.0703
+## 4      3.84  0.0937
+## 5      0.54  0.1002
+## 6     18.27  0.1352
+## 7      0.66  0.1390
+## 8      1.44  0.1713
+## 9      2.29  0.1766
+## 10     0.81  0.1948
+## 11    70.13  0.2210
+## 12     0.89  0.2236
+## 13     5.20  0.2379
+## 14     1.20  0.2420
+## 15    73.00  0.3191
+## 16     3.30  0.3192
+## 17    14.59  0.3249
+## 18     0.39  0.3272
+## 19     0.39  0.3272
+## 20     0.89  0.3520
+## 21     0.43  0.3534
+## 22     0.43  0.3534
+## 23     1.44  0.3729
+## 24     0.47  0.3785
+## 25     0.47  0.3785
+## 26    18.46  0.3820
+## 27     2.06  0.3956
+## 28     1.12  0.4017
+## 29     1.94  0.4040
+## 30     1.40  0.4105
+## 31    37.67  0.4133
+## 32     0.54  0.4260
+## 33    14.00  0.4295
+## 34     1.55  0.4641
+## 35     0.62  0.4699
+## 36     0.62  0.4699
+## 37     1.67  0.4701
+## 38     0.66  0.4906
+## 39     1.67  0.5025
+## 40     2.60  0.5102
+## 41     0.70  0.5105
+## 42     0.70  0.5105
+## 43     4.77  0.5263
+## 44     0.78  0.5480
+## 45     0.81  0.5656
+## 46     1.90  0.5737
+## 47     0.85  0.5826
+## 48     0.93  0.6146
+## 49     2.68  0.6299
+## 50    11.79  0.6457</code></pre>
+<div class="sourceCode" id="cb85"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_MF)</span></code></pre></div>
+<pre><code>##         GO.ID                                        Term Annotated Significant
+## 1  GO:0047834     D-threo-aldose 1-dehydrogenase activity        15           4
+## 2  GO:0005215                        transporter activity       342          18
+## 3  GO:0030247                      polysaccharide binding        25           3
+## 4  GO:0008194            UDP-glycosyltransferase activity        57           4
+## 5  GO:0016627 oxidoreductase activity, acting on the C...        13           2
+## 6  GO:0003700 DNA-binding transcription factor activit...       169          10
+## 7  GO:0016762 xyloglucan:xyloglucosyl transferase acti...        15           2
+## 8  GO:0016879 ligase activity, forming carbon-nitrogen...        16           2
+## 9  GO:0005198                structural molecule activity        81           4
+## 10 GO:0016741 transferase activity, transferring one-c...        96           2
+## 11 GO:0046873 metal ion transmembrane transporter acti...        36           3
+## 12 GO:0016830                carbon-carbon lyase activity        20           2
+## 13 GO:0004672                     protein kinase activity       472          22
+## 14 GO:0043531                                 ADP binding        21           2
+## 15 GO:0022857          transmembrane transporter activity       334          15
+## 16 GO:0016614 oxidoreductase activity, acting on CH-OH...        57           6
+## 17 GO:0004519                       endonuclease activity        30           2
+## 18 GO:0016705 oxidoreductase activity, acting on paire...        68           4
+## 19 GO:0004497                      monooxygenase activity        70           4
+## 20 GO:0043565               sequence-specific DNA binding       117           6
+## 21 GO:0004386                           helicase activity        29           2
+## 22 GO:0020037                                heme binding        98           5
+## 23 GO:0016757                glycosyltransferase activity       171          11
+## 24 GO:0051087                           chaperone binding        10           1
+## 25 GO:0030955                       potassium ion binding        10           1
+## 26 GO:0004743                    pyruvate kinase activity        10           1
+## 27 GO:0008443                phosphofructokinase activity        11           1
+## 28 GO:0016844             strictosidine synthase activity        11           1
+## 29 GO:0046872                           metal ion binding       486          17
+## 30 GO:0004553 hydrolase activity, hydrolyzing O-glycos...       155           7
+## 31 GO:0050660         flavin adenine dinucleotide binding        34           2
+## 32 GO:0022836                      gated channel activity        12           1
+## 33 GO:0008094       ATP-dependent activity, acting on DNA        12           1
+## 34 GO:0005216                        ion channel activity        35           2
+## 35 GO:0016747 acyltransferase activity, transferring g...        77           4
+## 36 GO:0016836                        hydro-lyase activity        13           1
+## 37 GO:0015103 inorganic anion transmembrane transporte...        15           1
+## 38 GO:0005516                          calmodulin binding        17           1
+## 39 GO:0004523        RNA-DNA hybrid ribonuclease activity        17           1
+## 40 GO:0004185       serine-type carboxypeptidase activity        17           1
+## 41 GO:0015267                            channel activity        53           3
+## 42 GO:0008080                N-acetyltransferase activity        18           1
+## 43 GO:0005525                                 GTP binding        99           4
+## 44 GO:0016491                     oxidoreductase activity       426          23
+## 45 GO:0005506                            iron ion binding        74           3
+## 46 GO:0019899                              enzyme binding        20           1
+## 47 GO:0016667 oxidoreductase activity, acting on a sul...        20           1
+## 48 GO:0004601                         peroxidase activity        48           2
+## 49 GO:0003779                               actin binding        21           1
+## 50 GO:0004518                           nuclease activity        54           3
+##    Expected classic
+## 1      0.57  0.0019
+## 2     12.92  0.0025
+## 3      0.94  0.0663
+## 4      2.15  0.0800
+## 5      0.49  0.0842
+## 6      6.38  0.1049
+## 7      0.57  0.1080
+## 8      0.60  0.1205
+## 9      3.06  0.1210
+## 10     3.63  0.1446
+## 11     1.36  0.1533
+## 12     0.76  0.1733
+## 13    17.83  0.1740
+## 14     0.79  0.1871
+## 15    12.62  0.2076
+## 16     2.15  0.2328
+## 17     1.13  0.2362
+## 18     2.57  0.2546
+## 19     2.64  0.2714
+## 20     4.42  0.2801
+## 21     1.10  0.3000
+## 22     3.70  0.3112
+## 23     6.46  0.3187
+## 24     0.38  0.3198
+## 25     0.38  0.3198
+## 26     0.38  0.3198
+## 27     0.42  0.3456
+## 28     0.42  0.3456
+## 29    18.36  0.3680
+## 30     5.85  0.3694
+## 31     1.28  0.3698
+## 32     0.45  0.3703
+## 33     0.45  0.3703
+## 34     1.32  0.3835
+## 35     2.91  0.3853
+## 36     0.49  0.3942
+## 37     0.57  0.4392
+## 38     0.64  0.4809
+## 39     0.64  0.4809
+## 40     0.64  0.4809
+## 41     2.00  0.4993
+## 42     0.68  0.5006
+## 43     3.74  0.5185
+## 44    16.09  0.5327
+## 45     2.80  0.5344
+## 46     0.76  0.5377
+## 47     0.76  0.5377
+## 48     1.81  0.5468
+## 49     0.79  0.5553
+## 50     2.04  0.5705</code></pre>
+<div class="sourceCode" id="cb87"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_CC)</span></code></pre></div>
+<pre><code>##         GO.ID                                        Term Annotated Significant
+## 1  GO:0030660           Golgi-associated vesicle membrane        11           2
+## 2  GO:0030120                                vesicle coat        13           2
+## 3  GO:0048046                                    apoplast        15           2
+## 4  GO:0005618                                   cell wall        15           2
+## 5  GO:0005794                             Golgi apparatus        19           2
+## 6  GO:0016020                                    membrane       708          28
+## 7  GO:0005839                     proteasome core complex        10           1
+## 8  GO:0019898             extrinsic component of membrane        11           1
+## 9  GO:0098797             plasma membrane protein complex        13           1
+## 10 GO:0140534 endoplasmic reticulum protein-containing...        13           1
+## 11 GO:0009654      photosystem II oxygen evolving complex        13           1
+## 12 GO:0099023                   vesicle tethering complex        15           1
+## 13 GO:0005634                                     nucleus       148           5
+## 14 GO:0005856                                cytoskeleton        24           1
+## 15 GO:0005840                                    ribosome        66           2
+## 16 GO:1902494                           catalytic complex        77           3
+## 17 GO:0140513          nuclear protein-containing complex        44           1
+## 18 GO:0005737                                   cytoplasm       138           5
+## 19 GO:0016021              integral component of membrane       297           9
+## 20 GO:0031090                          organelle membrane        57           2
+## 21 GO:0031410                         cytoplasmic vesicle        14           2
+## 22 GO:0031982                                     vesicle        14           2
+## 23 GO:0030312            external encapsulating structure        15           2
+## 24 GO:0005622          intracellular anatomical structure       421          14
+## 25 GO:1990204                      oxidoreductase complex        16           1
+## 26 GO:0012505                         endomembrane system        59           3
+## 27 GO:0012506                            vesicle membrane        14           2
+## 28 GO:0098796                    membrane protein complex        78           3
+## 29 GO:0097708                       intracellular vesicle        14           2
+## 30 GO:0030659                cytoplasmic vesicle membrane        14           2
+## 31 GO:0009579                                   thylakoid        18           1
+## 32 GO:0043231    intracellular membrane-bounded organelle       227           8
+## 33 GO:0042651                          thylakoid membrane        13           1
+## 34 GO:0009521                                 photosystem        18           1
+## 35 GO:0043232 intracellular non-membrane-bounded organ...       124           3
+## 36 GO:0000502                          proteasome complex        11           1
+## 37 GO:0005783                       endoplasmic reticulum        28           1
+## 38 GO:0009523                              photosystem II        15           1
+## 39 GO:0071944                              cell periphery        38           3
+## 40 GO:0031224             intrinsic component of membrane       305           9
+## 41 GO:0005575                          cellular_component      1089          42
+## 42 GO:0140535    intracellular protein-containing complex        30           1
+## 43 GO:0048475                             coated membrane        19           2
+## 44 GO:0030135                              coated vesicle        13           2
+## 45 GO:0043226                                   organelle       338          11
+## 46 GO:0005576                        extracellular region        18           2
+## 47 GO:0043227                  membrane-bounded organelle       227           8
+## 48 GO:0034357                     photosynthetic membrane        18           1
+## 49 GO:0043228              non-membrane-bounded organelle       124           3
+## 50 GO:0098588              bounding membrane of organelle        26           2
+##    Expected classic
+## 1      0.42   0.064
+## 2      0.50   0.087
+## 3      0.58   0.111
+## 4      0.58   0.111
+## 5      0.73   0.164
+## 6     27.31   0.266
+## 7      0.39   0.326
+## 8      0.42   0.353
+## 9      0.50   0.402
+## 10     0.50   0.402
+## 11     0.50   0.402
+## 12     0.58   0.448
+## 13     5.71   0.597
+## 14     0.93   0.615
+## 15     2.55   0.737
+## 16     2.97   0.824
+## 17     1.70   0.829
+## 18     5.32   0.832
+## 19    11.45   0.853
+## 20     2.20   1.000
+## 21     0.54   1.000
+## 22     0.54   1.000
+## 23     0.58   1.000
+## 24    16.24   1.000
+## 25     0.62   1.000
+## 26     2.28   1.000
+## 27     0.54   1.000
+## 28     3.01   1.000
+## 29     0.54   1.000
+## 30     0.54   1.000
+## 31     0.69   1.000
+## 32     8.75   1.000
+## 33     0.50   1.000
+## 34     0.69   1.000
+## 35     4.78   1.000
+## 36     0.42   1.000
+## 37     1.08   1.000
+## 38     0.58   1.000
+## 39     1.47   1.000
+## 40    11.76   1.000
+## 41    42.00   1.000
+## 42     1.16   1.000
+## 43     0.73   1.000
+## 44     0.50   1.000
+## 45    13.04   1.000
+## 46     0.69   1.000
+## 47     8.75   1.000
+## 48     0.69   1.000
+## 49     4.78   1.000
+## 50     1.00   1.000</code></pre>
+<div class="sourceCode" id="cb89"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>allGO_BP<span class="ot">=</span><span class="fu">usedGO</span>(GOdataBP_X)</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a><span class="co">#performing BH correction on our p values</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>p.adj_BP<span class="ot">=</span><span class="fu">round</span>(<span class="fu">p.adjust</span>(allRes_BP<span class="sc">$</span>classic,<span class="at">method=</span><span class="st">&quot;BH&quot;</span>),<span class="at">digits =</span> <span class="dv">4</span>)</span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a><span class="co"># create the file with all the statistics from GO analysis</span></span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true" tabindex="-1"></a>allResBH_BP<span class="ot">=</span><span class="fu">cbind</span>(allRes_BP,p.adj_BP)</span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true" tabindex="-1"></a>allResBH_BP<span class="ot">=</span>allResBH_BP[<span class="fu">order</span>(allResBH_BP<span class="sc">$</span>p.adj_BP),]</span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb89-9"><a href="#cb89-9" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO before multiple testing correction</span></span>
+<span id="cb89-10"><a href="#cb89-10" aria-hidden="true" tabindex="-1"></a>results.table.p.bp<span class="ot">=</span> allResBH_BP[<span class="fu">which</span>(allResBH_BP<span class="sc">$</span>classic<span class="sc">&lt;=</span><span class="fl">0.05</span>),]</span>
+<span id="cb89-11"><a href="#cb89-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.p.bp) </span></code></pre></div>
+<pre><code>##        GO.ID               Term Annotated Significant Expected classic p.adj_BP
+## 1 GO:0010876 lipid localization        11           3     0.43  0.0075    0.375</code></pre>
+<div class="sourceCode" id="cb91"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO after multiple testing correction</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>results.table.bh.bp<span class="ot">=</span>allResBH_BP[<span class="fu">which</span>(allResBH_BP<span class="sc">$</span>p.adj<span class="sc">&lt;=</span><span class="fl">0.1</span>),]</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.bh.bp)</span></code></pre></div>
+<pre><code>## [1] GO.ID       Term        Annotated   Significant Expected    classic    
+## [7] p.adj_BP   
+## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<div class="sourceCode" id="cb93"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="co"># just two top hits</span></span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a><span class="co"># GO:0006355 regulation of DNA-templated transcriptio...    </span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a><span class="co"># GO:0016192 vesicle-mediated transport </span></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a><span class="do">#####</span></span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a><span class="co">#save first top 50 ontolgies sorted by adjusted pvalues</span></span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a><span class="co">#write.table(all_res_final[1:50,],&quot;summary_topGO_analysis.csv&quot;,sep=&quot;,&quot;,quote=FALSE,row.names=FALSE)</span></span>
+<span id="cb93-7"><a href="#cb93-7" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb93-8"><a href="#cb93-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PLOT the GO hierarchy plot: the enriched GO terms are colored in yellow/red according to significance level</span></span>
+<span id="cb93-9"><a href="#cb93-9" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb93-10"><a href="#cb93-10" aria-hidden="true" tabindex="-1"></a><span class="co"># pdf(file=&#39;topGOPlot_BP_fullnames.pdf&#39;, height=12, width=12)</span></span>
+<span id="cb93-11"><a href="#cb93-11" aria-hidden="true" tabindex="-1"></a><span class="co"># showSigOfNodes(GOdataBP_X, score(resultFisher_BP_X), useInfo = &quot;all&quot;, sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)</span></span>
+<span id="cb93-12"><a href="#cb93-12" aria-hidden="true" tabindex="-1"></a><span class="co"># dev.off()</span></span>
+<span id="cb93-13"><a href="#cb93-13" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb93-14"><a href="#cb93-14" aria-hidden="true" tabindex="-1"></a><span class="co"># all_res_CC=GenTable(GOdataCC_X, weightFisher=weight_fisher_result_CC, orderBy=&#39;weightFisher&#39;, topNodes=length(GOdataCC_X))</span></span>
+<span id="cb93-15"><a href="#cb93-15" aria-hidden="true" tabindex="-1"></a><span class="co"># showSigOfNodes(GOdataCC_X, score(weight_fisher_result_CC), useInfo = &quot;all&quot;, sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)</span></span>
+<span id="cb93-16"><a href="#cb93-16" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb93-17"><a href="#cb93-17" aria-hidden="true" tabindex="-1"></a><span class="co"># showSigOfNodes(GOdataMF_X, score(weight_fisher_result_MF), useInfo = &quot;all&quot;, sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)</span></span></code></pre></div>
+</div>
+<div id="redo-again-with-background-of-just-x-genes" class="section level3">
+<h3>Redo again with background of just X genes</h3>
+<div class="sourceCode" id="cb94"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>GO_map_denom_x <span class="ot">&lt;-</span> GO_map_denom <span class="sc">%&gt;%</span> <span class="fu">filter</span>(ID <span class="sc">%in%</span> GO_anno_X<span class="sc">$</span>anno)</span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.table</span>(GO_map_denom_x,<span class="st">&quot;geneIDsGO_denom.map&quot;</span>, <span class="at">row.names=</span>F,<span class="at">col.names =</span> F,<span class="at">quote =</span> F)</span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a>geneID2GO_x<span class="ot">&lt;-</span><span class="fu">readMappings</span>(<span class="at">file=</span><span class="st">&quot;geneIDsGO_denom.map&quot;</span>,<span class="at">sep=</span><span class="st">&quot; &quot;</span>,<span class="at">IDsep=</span><span class="st">&quot;,&quot;</span>) </span>
+<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb94-6"><a href="#cb94-6" aria-hidden="true" tabindex="-1"></a>geneNames_x <span class="ot">&lt;-</span> <span class="fu">names</span>(geneID2GO_x)</span>
+<span id="cb94-7"><a href="#cb94-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb94-8"><a href="#cb94-8" aria-hidden="true" tabindex="-1"></a>MyInterestingGenes_X<span class="ot">&lt;-</span><span class="fu">as.character</span>(Xgenelist<span class="sc">$</span>hap1)</span>
+<span id="cb94-9"><a href="#cb94-9" aria-hidden="true" tabindex="-1"></a>geneList_x <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">as.integer</span>(geneNames_x <span class="sc">%in%</span> MyInterestingGenes_X))</span>
+<span id="cb94-10"><a href="#cb94-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(geneList_x) <span class="ot">&lt;-</span> geneNames_x</span>
+<span id="cb94-11"><a href="#cb94-11" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(geneList_x) <span class="co"># 1649 total genes (Vs 5000 ish from before)</span></span></code></pre></div>
+<pre><code>##  Factor w/ 2 levels &quot;0&quot;,&quot;1&quot;: 1 1 1 1 2 1 2 2 1 1 ...
+##  - attr(*, &quot;names&quot;)= chr [1:1646] &quot;NChap1_final_00000004&quot; &quot;NChap1_final_00000008&quot; &quot;NChap1_final_00000005&quot; &quot;NChap1_final_00000023&quot; ...</code></pre>
+<div class="sourceCode" id="cb96"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>GOdataBP_Xonly <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;BP&quot;</span>), <span class="at">allGenes =</span> geneList_x,<span class="at">description =</span> <span class="st">&quot;X genes in total set&quot;</span>,</span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geneSel =</span> MyInterestingGenes_X, <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO_x, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 208 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 769 GO terms and 1474 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 843 genes annotated to the GO terms. )</code></pre>
+<div class="sourceCode" id="cb103"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>GOdataMF_Xonly <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;MF&quot;</span>),</span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">allGenes =</span> geneList_x,</span>
+<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">description =</span> <span class="st">&quot;X genes in total set&quot;</span>,</span>
+<span id="cb103-4"><a href="#cb103-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">geneSel =</span> MyInterestingGenes_X, </span>
+<span id="cb103-5"><a href="#cb103-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO_x, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 288 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 528 GO terms and 659 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 1464 genes annotated to the GO terms. )</code></pre>
+<div class="sourceCode" id="cb110"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a>GOdataCC_Xonly <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">&quot;topGOdata&quot;</span>, <span class="at">ontology =</span> <span class="fu">c</span>(<span class="st">&quot;CC&quot;</span>),  <span class="at">allGenes =</span> geneList_x,</span>
+<span id="cb110-2"><a href="#cb110-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">description =</span> <span class="st">&quot;X genes in total set&quot;</span>,</span>
+<span id="cb110-3"><a href="#cb110-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">geneSel =</span> MyInterestingGenes_X, </span>
+<span id="cb110-4"><a href="#cb110-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">annot =</span> annFUN.gene2GO, <span class="at">gene2GO =</span> geneID2GO_x, <span class="at">nodeSize =</span> <span class="dv">10</span>)</span></code></pre></div>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 62 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 181 GO terms and 328 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 297 genes annotated to the GO terms. )</code></pre>
+<div class="sourceCode" id="cb117"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define test using the weight01 algorithm (default) with fisher</span></span>
+<span id="cb117-2"><a href="#cb117-2" aria-hidden="true" tabindex="-1"></a>resultFisher_BP_Xonly<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataBP_Xonly, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+##           -- Weight01 Algorithm -- 
+## 
+##       the algorithm is scoring 140 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher</code></pre>
+<pre><code>## 
+##   Level 11:  1 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
 ##   Level 10:  2 nodes to be scored    (0 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 9:   4 nodes to be scored    (0 eliminated genes)</code></pre>
+##   Level 9:   4 nodes to be scored    (105 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 8:   7 nodes to be scored    (41 eliminated genes)</code></pre>
+##   Level 8:   9 nodes to be scored    (112 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 7:   10 nodes to be scored   (46 eliminated genes)</code></pre>
+##   Level 7:   13 nodes to be scored   (133 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 6:   17 nodes to be scored   (84 eliminated genes)</code></pre>
+##   Level 6:   21 nodes to be scored   (210 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 5:   14 nodes to be scored   (214 eliminated genes)</code></pre>
+##   Level 5:   39 nodes to be scored   (418 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 4:   16 nodes to be scored   (1354 eliminated genes)</code></pre>
+##   Level 4:   27 nodes to be scored   (530 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 3:   10 nodes to be scored   (2305 eliminated genes)</code></pre>
+##   Level 3:   17 nodes to be scored   (685 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 2:   2 nodes to be scored    (2411 eliminated genes)</code></pre>
+##   Level 2:   6 nodes to be scored    (785 eliminated genes)</code></pre>
 <pre><code>## 
-##   Level 1:   1 nodes to be scored    (3273 eliminated genes)</code></pre>
-<div class="sourceCode" id="cb84"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="co">#GOdata</span></span>
-<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a><span class="co">#description(GOdata)</span></span>
-<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a><span class="co">#numGenes(GOdata)</span></span>
-<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a><span class="co"># sel.terms &lt;- sample(usedGO(GOdata), 10)</span></span>
-<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a><span class="co">#termStat</span></span>
-<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb84-7"><a href="#cb84-7" aria-hidden="true" tabindex="-1"></a><span class="do">## correction for fdr from amardeeps script that i cant quite figure out</span></span>
-<span id="cb84-8"><a href="#cb84-8" aria-hidden="true" tabindex="-1"></a><span class="co"># library(&quot;qvalue&quot;)</span></span>
-<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb84-10"><a href="#cb84-10" aria-hidden="true" tabindex="-1"></a><span class="co"># values = as.data.frame(unlist(score(resultFisher)))</span></span>
-<span id="cb84-11"><a href="#cb84-11" aria-hidden="true" tabindex="-1"></a><span class="co"># colnames(pvalues) = &quot;pvalue&quot;</span></span>
-<span id="cb84-12"><a href="#cb84-12" aria-hidden="true" tabindex="-1"></a><span class="co"># pvalues$qvalue = (qvalue(pvalues$pvalue))$qvalue</span></span>
-<span id="cb84-13"><a href="#cb84-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb84-14"><a href="#cb84-14" aria-hidden="true" tabindex="-1"></a>allRes_BP <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdata_BP, <span class="at">classic =</span> resultFisher_BP, <span class="at">orderBy =</span> <span class="st">&quot;weight&quot;</span>, <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">20</span>)</span>
-<span id="cb84-15"><a href="#cb84-15" aria-hidden="true" tabindex="-1"></a>allRes_MF <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdata_MF, <span class="at">classic =</span> resultFisher_MF, <span class="at">orderBy =</span> <span class="st">&quot;weight&quot;</span>, <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">20</span>)</span>
-<span id="cb84-16"><a href="#cb84-16" aria-hidden="true" tabindex="-1"></a>allRes_CC <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdata_CC, <span class="at">classic =</span> resultFisher_CC, <span class="at">orderBy =</span> <span class="st">&quot;weight&quot;</span>, <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">20</span>)</span>
-<span id="cb84-17"><a href="#cb84-17" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdata_BP, score(allRes_BP$classic), firstSigNodes = 5, useInfo = &#39;all&#39;)</span></span>
-<span id="cb84-18"><a href="#cb84-18" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdata_BP,termsP.value = allRes_BP$classic, = 5)</span></span>
-<span id="cb84-19"><a href="#cb84-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb84-20"><a href="#cb84-20" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_BP)</span></code></pre></div>
+##   Level 1:   1 nodes to be scored    (828 eliminated genes)</code></pre>
+<div class="sourceCode" id="cb130"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a>resultFisher_MF_Xonly<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataMF_Xonly, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+##           -- Weight01 Algorithm -- 
+## 
+##       the algorithm is scoring 110 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher</code></pre>
+<pre><code>## 
+##   Level 9:   2 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 8:   4 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 7:   8 nodes to be scored    (248 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 6:   16 nodes to be scored   (255 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 5:   26 nodes to be scored   (338 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 4:   28 nodes to be scored   (543 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 3:   17 nodes to be scored   (871 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 2:   8 nodes to be scored    (1056 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 1:   1 nodes to be scored    (1400 eliminated genes)</code></pre>
+<div class="sourceCode" id="cb141"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a>resultFisher_CC_Xonly<span class="ot">&lt;-</span> <span class="fu">runTest</span>(GOdataCC_Xonly, <span class="at">algorithm =</span> <span class="st">&quot;weight01&quot;</span>,<span class="at">statistic =</span> <span class="st">&quot;fisher&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+##           -- Weight01 Algorithm -- 
+## 
+##       the algorithm is scoring 21 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher</code></pre>
+<pre><code>## 
+##   Level 7:   1 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 6:   2 nodes to be scored    (0 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 5:   4 nodes to be scored    (10 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 4:   6 nodes to be scored    (52 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 3:   5 nodes to be scored    (168 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 2:   2 nodes to be scored    (196 eliminated genes)</code></pre>
+<pre><code>## 
+##   Level 1:   1 nodes to be scored    (292 eliminated genes)</code></pre>
+</div>
+<div id="results---default-2" class="section level3">
+<h3>results - default</h3>
+<p>note: p-values need FDR correction</p>
+<div class="sourceCode" id="cb150"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>allRes_BPonly <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataBP_Xonly, <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>,</span>
+<span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">topNodes =</span> <span class="dv">50</span>,<span class="at">classic =</span> resultFisher_BP_Xonly)</span>
+<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a>allRes_MFonly <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataMF_Xonly, <span class="at">classic =</span> resultFisher_MF_Xonly, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>, </span>
+<span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">50</span>)</span>
+<span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a>allRes_CConly <span class="ot">&lt;-</span> <span class="fu">GenTable</span>(GOdataCC_Xonly, <span class="at">classic =</span> resultFisher_CC_Xonly, <span class="at">orderBy =</span> <span class="st">&quot;weightFisher&quot;</span>, </span>
+<span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ranksOf =</span> <span class="st">&quot;classic&quot;</span>, <span class="at">topNodes =</span> <span class="dv">20</span>)</span>
+<span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdataBP_X, score(allRes_BP$classic), firstSigNodes = 5, useInfo = &#39;all&#39;)</span></span>
+<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a><span class="co">#showSigOfNodes(GOdataBP_X,termsP.value = allRes_BP$classic, = 5)</span></span>
+<span id="cb150-9"><a href="#cb150-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_BPonly)</span></code></pre></div>
 <pre><code>##         GO.ID                                        Term Annotated Significant
-## 1  GO:0006355 regulation of DNA-templated transcriptio...       565          31
-## 2  GO:0016192                  vesicle-mediated transport       122          11
-## 3  GO:0006096                          glycolytic process        40           5
-## 4  GO:0009116                nucleoside metabolic process        13           3
-## 5  GO:0006468                     protein phosphorylation       907          35
-## 6  GO:0006869                             lipid transport        15           3
-## 7  GO:0006073           cellular glucan metabolic process        65           4
-## 8  GO:0006886             intracellular protein transport        87           6
-## 9  GO:0009067 aspartate family amino acid biosynthetic...        11           2
-## 10 GO:0031399 regulation of protein modification proce...        12           2
-## 11 GO:0019220 regulation of phosphate metabolic proces...        12           2
-## 12 GO:0009058                        biosynthetic process      2521          58
-## 13 GO:0009060                         aerobic respiration        16           2
-## 14 GO:0050790            regulation of catalytic activity        18           2
-## 15 GO:0009141 nucleoside triphosphate metabolic proces...       391           6
-## 16 GO:0006820                             anion transport        59           4
-## 17 GO:0046942                   carboxylic acid transport        23           2
-## 18 GO:0007010                   cytoskeleton organization        24           2
-## 19 GO:0055085                     transmembrane transport       877          20
-## 20 GO:0030001                         metal ion transport        65           4
+## 1  GO:0033036                  macromolecule localization        26           5
+## 2  GO:1901135 carbohydrate derivative metabolic proces...        22           7
+## 3  GO:0006753      nucleoside phosphate metabolic process        10           4
+## 4  GO:0006091 generation of precursor metabolites and ...        11           4
+## 5  GO:0016310                             phosphorylation       157          26
+## 6  GO:0044260    cellular macromolecule metabolic process        69          10
+## 7  GO:1901564 organonitrogen compound metabolic proces...       289          41
+## 8  GO:0071702                 organic substance transport        29           5
+## 9  GO:0051603 proteolysis involved in protein cataboli...        11           2
+## 10 GO:0032787       monocarboxylic acid metabolic process        11           3
+## 11 GO:0006468                     protein phosphorylation       149          23
+## 12 GO:0016192                  vesicle-mediated transport        19           4
+## 13 GO:0006996                      organelle organization        24           5
+## 14 GO:0016052              carbohydrate catabolic process        13           3
+## 15 GO:0016043             cellular component organization        47           8
+## 16 GO:0051171 regulation of nitrogen compound metaboli...       110          16
+## 17 GO:0031323    regulation of cellular metabolic process       110          16
+## 18 GO:0080090     regulation of primary metabolic process       110          16
+## 19 GO:0034654 nucleobase-containing compound biosynthe...       114          16
+## 20 GO:0044238                   primary metabolic process       544          69
+## 21 GO:0071704         organic substance metabolic process       564          71
+## 22 GO:0030001                         metal ion transport        14           3
+## 23 GO:0006518                   peptide metabolic process        32           5
+## 24 GO:1901566 organonitrogen compound biosynthetic pro...        45           7
+## 25 GO:0044262     cellular carbohydrate metabolic process        15           3
+## 26 GO:0055086 nucleobase-containing small molecule met...        13           5
+## 27 GO:0006811                               ion transport        37           6
+## 28 GO:0022607                 cellular component assembly        17           2
+## 29 GO:0006355 regulation of DNA-templated transcriptio...       105          15
+## 30 GO:0006790           sulfur compound metabolic process        10           2
+## 31 GO:0051276                     chromosome organization        11           2
+## 32 GO:0005976            polysaccharide metabolic process        11           2
+## 33 GO:0034645 cellular macromolecule biosynthetic proc...        35           5
+## 34 GO:0006950                          response to stress        38           5
+## 35 GO:0060255 regulation of macromolecule metabolic pr...       113          16
+## 36 GO:0055085                     transmembrane transport        84          11
+## 37 GO:0006886             intracellular protein transport        14           2
+## 38 GO:0044248                  cellular catabolic process        16           2
+## 39 GO:0050896                        response to stimulus        63           7
+## 40 GO:0006281                                  DNA repair        15           2
+## 41 GO:0006412                                 translation        24           3
+## 42 GO:0046907                     intracellular transport        21           3
+## 43 GO:0050794              regulation of cellular process       137          18
+## 44 GO:0006979                response to oxidative stress        16           2
+## 45 GO:0009058                        biosynthetic process       190          24
+## 46 GO:0042545                      cell wall modification        10           1
+## 47 GO:0046394        carboxylic acid biosynthetic process        10           1
+## 48 GO:0006511 ubiquitin-dependent protein catabolic pr...        10           1
+## 49 GO:1901605          alpha-amino acid metabolic process        10           1
+## 50 GO:0006399                      tRNA metabolic process        11           1
 ##    Expected classic
-## 1     14.09 2.4e-05
-## 2      3.04 0.00038
-## 3      1.00 0.00298
-## 4      0.32 0.00364
-## 5     22.63 0.00558
-## 6      0.37 0.00585
-## 7      1.62 0.02349
-## 8      2.17 0.02386
-## 9      0.27 0.02937
-## 10     0.30 0.03468
-## 11     0.30 0.03468
-## 12    62.89 0.04057
-## 13     0.40 0.05909
-## 14     0.45 0.07295
-## 15     9.75 0.07467
-## 16     1.47 0.09540
-## 17     0.57 0.11839
-## 18     0.60 0.11957
-## 19    21.88 0.14060
-## 20     1.62 0.15617</code></pre>
-<div class="sourceCode" id="cb86"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_CC)</span></code></pre></div>
-<pre><code>##         GO.ID                                     Term Annotated Significant
-## 1  GO:0030660        Golgi-associated vesicle membrane        13           5
-## 2  GO:0030120                             vesicle coat        21           5
-## 3  GO:0009654   photosystem II oxygen evolving complex        17           4
-## 4  GO:0005794                          Golgi apparatus        32           5
-## 5  GO:0030118                            clathrin coat        10           3
-## 6  GO:0019898          extrinsic component of membrane        14           3
-## 7  GO:0030658               transport vesicle membrane        15           3
-## 8  GO:0098797          plasma membrane protein complex        19           3
-## 9  GO:0048046                                 apoplast        25           3
-## 10 GO:0005618                                cell wall        25           3
-## 11 GO:1990204                   oxidoreductase complex        21           5
-## 12 GO:0005743             mitochondrial inner membrane        25           2
-## 13 GO:0005634                                  nucleus       271           9
-## 14 GO:0099023                vesicle tethering complex        28           2
-## 15 GO:0070069                       cytochrome complex        10           1
-## 16 GO:0015630                 microtubule cytoskeleton        10           1
-## 17 GO:0098803                respiratory chain complex        11           1
-## 18 GO:0005737                                cytoplasm       270          13
-## 19 GO:0005643                             nuclear pore        12           1
-## 20 GO:0031301 integral component of organelle membrane        13           1
-##    Expected classic
-## 1      0.34 1.2e-05
-## 2      0.55 0.00016
-## 3      0.44 0.00080
-## 4      0.84 0.00125
-## 5      0.26 0.00181
-## 6      0.37 0.00509
-## 7      0.39 0.00624
-## 8      0.50 0.01233
-## 9      0.65 0.02615
-## 10     0.65 0.02615
-## 11     0.55 0.09650
-## 12     0.65 0.12339
-## 13     7.08 0.22301
-## 14     0.73 0.23158
-## 15     0.26 0.23286
-## 16     0.26 0.23286
-## 17     0.29 0.25296
-## 18     7.05 0.25803
-## 19     0.31 0.27254
-## 20     0.34 0.29161</code></pre>
-<div class="sourceCode" id="cb88"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_MF)</span></code></pre></div>
+## 1      3.36  0.0078
+## 2      2.84  0.0162
+## 3      1.29  0.0299
+## 4      1.42  0.0424
+## 5     20.30  0.0648
+## 6      8.92  0.0840
+## 7     37.37  0.0884
+## 8      3.75  0.1293
+## 9      1.42  0.1297
+## 10     1.42  0.1601
+## 11    19.27  0.1906
+## 12     2.46  0.2228
+## 13     3.10  0.2277
+## 14     1.68  0.2303
+## 15     6.08  0.2394
+## 16    14.22  0.2396
+## 17    14.22  0.2396
+## 18    14.22  0.2396
+## 19    14.74  0.2408
+## 20    70.34  0.2543
+## 21    72.93  0.2587
+## 22     1.81  0.2672
+## 23     4.14  0.2774
+## 24     5.82  0.2837
+## 25     1.94  0.3048
+## 26     1.68  0.3328
+## 27     4.78  0.3411
+## 28     2.20  0.3425
+## 29    13.58  0.3770
+## 30     1.29  0.3781
+## 31     1.42  0.4265
+## 32     1.42  0.4265
+## 33     4.53  0.4270
+## 34     4.91  0.4272
+## 35    14.61  0.4965
+## 36    10.86  0.5357
+## 37     1.81  0.5586
+## 38     2.07  0.5665
+## 39     8.15  0.5707
+## 40     1.94  0.5977
+## 41     3.10  0.6194
+## 42     2.72  0.6213
+## 43    17.71  0.6215
+## 44     2.07  0.6341
+## 45    24.57  0.6711
+## 46     1.29  0.7516
+## 47     1.29  0.7516
+## 48     1.29  0.7516
+## 49     1.29  0.7516
+## 50     1.42  0.7841</code></pre>
+<div class="sourceCode" id="cb152"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_MFonly)</span></code></pre></div>
 <pre><code>##         GO.ID                                        Term Annotated Significant
-## 1  GO:0005198                structural molecule activity       524          15
-## 2  GO:0003700 DNA-binding transcription factor activit...       251          17
-## 3  GO:0043565               sequence-specific DNA binding       167          12
-## 4  GO:0005319                  lipid transporter activity        14           3
-## 5  GO:0047834     D-threo-aldose 1-dehydrogenase activity        27           4
-## 6  GO:0003872              6-phosphofructokinase activity        14           3
-## 7  GO:0016627 oxidoreductase activity, acting on the C...        28           4
-## 8  GO:0016844             strictosidine synthase activity        15           3
-## 9  GO:0004672                     protein kinase activity       916          34
-## 10 GO:0022857          transmembrane transporter activity       947          24
-## 11 GO:0016762 xyloglucan:xyloglucosyl transferase acti...        25           3
-## 12 GO:2001070                              starch binding        10           2
-## 13 GO:0016879 ligase activity, forming carbon-nitrogen...        27           3
-## 14 GO:0008080                N-acetyltransferase activity        33           3
-## 15 GO:0003993                   acid phosphatase activity        15           2
-## 16 GO:0046872                           metal ion binding      1568          32
-## 17 GO:0005509                         calcium ion binding       150           7
-## 18 GO:0005525                                 GTP binding       221           9
-## 19 GO:0051082                    unfolded protein binding        24           2
-## 20 GO:0016209                        antioxidant activity       151           6
+## 1  GO:0005215                        transporter activity       102          18
+## 2  GO:0016616 oxidoreductase activity, acting on the C...        16           5
+## 3  GO:0005198                structural molecule activity        16           4
+## 4  GO:0003700 DNA-binding transcription factor activit...        53          10
+## 5  GO:0043565               sequence-specific DNA binding        29           6
+## 6  GO:0030247                      polysaccharide binding        11           3
+## 7  GO:0046527                glucosyltransferase activity        11           3
+## 8  GO:0016747 acyltransferase activity, transferring g...        17           4
+## 9  GO:0022857          transmembrane transporter activity        98          15
+## 10 GO:0032559               adenyl ribonucleotide binding       226          23
+## 11 GO:0008194            UDP-glycosyltransferase activity        19           4
+## 12 GO:0016773 phosphotransferase activity, alcohol gro...       161          25
+## 13 GO:0004672                     protein kinase activity       148          22
+## 14 GO:0016874                             ligase activity        13           3
+## 15 GO:0016741 transferase activity, transferring one-c...        28           2
+## 16 GO:0016757                glycosyltransferase activity        49          11
+## 17 GO:0046873 metal ion transmembrane transporter acti...        15           3
+## 18 GO:0004497                      monooxygenase activity        22           4
+## 19 GO:0016705 oxidoreductase activity, acting on paire...        22           4
+## 20 GO:0016829                              lyase activity        23           4
+## 21 GO:0004518                           nuclease activity        13           3
+## 22 GO:0004519                       endonuclease activity        10           2
+## 23 GO:0016491                     oxidoreductase activity       139          23
+## 24 GO:0046872                           metal ion binding       146          17
+## 25 GO:0016614 oxidoreductase activity, acting on CH-OH...        20           6
+## 26 GO:0004553 hydrolase activity, hydrolyzing O-glycos...        50           7
+## 27 GO:0005216                        ion channel activity        12           2
+## 28 GO:0005525                                 GTP binding        28           4
+## 29 GO:0015318 inorganic molecular entity transmembrane...        37           6
+## 30 GO:0015267                            channel activity        17           3
+## 31 GO:0003735          structural constituent of ribosome        13           2
+## 32 GO:0020037                                heme binding        37           5
+## 33 GO:0003924                             GTPase activity        22           3
+## 34 GO:0015075      ion transmembrane transporter activity        40           6
+## 35 GO:0008236              serine-type peptidase activity        15           2
+## 36 GO:0004386                           helicase activity        15           2
+## 37 GO:0016301                             kinase activity       165          24
+## 38 GO:0004601                         peroxidase activity        17           2
+## 39 GO:0050660         flavin adenine dinucleotide binding        17           2
+## 40 GO:0016758                 hexosyltransferase activity        20           4
+## 41 GO:0008270                            zinc ion binding        37           4
+## 42 GO:0043168                               anion binding       283          29
+## 43 GO:0008092                cytoskeletal protein binding        23           2
+## 44 GO:0016788 hydrolase activity, acting on ester bond...        80           9
+## 45 GO:0005506                            iron ion binding        29           3
+## 46 GO:0005509                         calcium ion binding        29           3
+## 47 GO:0140097           catalytic activity, acting on DNA        10           1
+## 48 GO:0030599                     pectinesterase activity        10           1
+## 49 GO:0016791                        phosphatase activity        31           3
+## 50 GO:0003677                                 DNA binding       125          16
 ##    Expected classic
-## 1     12.70 1.9e-05
-## 2      6.08 0.00014
-## 3      4.05 0.00077
-## 4      0.34 0.00339
-## 5      0.65 0.00383
-## 6      0.34 0.00421
-## 7      0.68 0.00438
-## 8      0.36 0.00517
-## 9     22.20 0.00859
-## 10    22.95 0.02032
-## 11     0.61 0.02186
-## 12     0.24 0.02317
-## 13     0.65 0.02684
-## 14     0.80 0.04505
-## 15     0.36 0.04994
-## 16    38.00 0.05752
-## 17     3.64 0.07266
-## 18     5.36 0.08952
-## 19     0.58 0.11406
-## 20     3.66 0.11496</code></pre>
+## 1     12.75  0.0067
+## 2      2.00  0.0398
+## 3      2.00  0.0426
+## 4      6.62  0.1150
+## 5      3.62  0.1439
+## 6      1.38  0.1490
+## 7      1.38  0.1490
+## 8      2.12  0.1531
+## 9     12.25  0.1684
+## 10    28.25  0.1778
+## 11     2.38  0.2057
+## 12    20.12  0.2059
+## 13    18.50  0.2128
+## 14     1.62  0.2153
+## 15     3.50  0.2372
+## 16     6.12  0.2508
+## 17     1.88  0.2864
+## 18     2.75  0.2921
+## 19     2.75  0.2921
+## 20     2.88  0.3220
+## 21     1.62  0.3291
+## 22     1.25  0.3613
+## 23    17.38  0.3645
+## 24    18.25  0.3960
+## 25     2.50  0.4086
+## 26     6.25  0.4367
+## 27     1.50  0.4539
+## 28     3.50  0.4714
+## 29     4.62  0.4856
+## 30     2.12  0.4866
+## 31     1.62  0.4972
+## 32     4.62  0.5005
+## 33     2.75  0.5319
+## 34     5.00  0.5503
+## 35     1.88  0.5771
+## 36     1.88  0.5771
+## 37    20.62  0.6352
+## 38     2.12  0.6474
+## 39     2.12  0.6474
+## 40     2.50  0.6969
+## 41     4.62  0.6992
+## 42    35.38  0.7018
+## 43     2.88  0.7020
+## 44    10.00  0.7102
+## 45     3.62  0.7233
+## 46     3.62  0.7233
+## 47     1.25  0.7381
+## 48     1.25  0.7381
+## 49     3.88  0.7654
+## 50    15.62  0.7693</code></pre>
+<div class="sourceCode" id="cb154"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(allRes_CConly)</span></code></pre></div>
+<pre><code>##         GO.ID                                        Term Annotated Significant
+## 1  GO:0012505                         endomembrane system        14           3
+## 2  GO:0016020                                    membrane       200          28
+## 3  GO:1902494                           catalytic complex        17           3
+## 4  GO:0098796                    membrane protein complex        17           3
+## 5  GO:0110165                  cellular anatomical entity       293          41
+## 6  GO:0031090                          organelle membrane        12           2
+## 7  GO:0005840                                    ribosome        13           2
+## 8  GO:0005634                                     nucleus        39           5
+## 9  GO:0043231    intracellular membrane-bounded organelle        61           8
+## 10 GO:0005737                                   cytoplasm        38           5
+## 11 GO:0005622          intracellular anatomical structure       109          14
+## 12 GO:0140513          nuclear protein-containing complex        10           1
+## 13 GO:0032991                  protein-containing complex        46           7
+## 14 GO:0043232 intracellular non-membrane-bounded organ...        28           3
+## 15 GO:0016021              integral component of membrane        87           9
+## 16 GO:0031224             intrinsic component of membrane        89           9
+## 17 GO:0005575                          cellular_component       297          42
+## 18 GO:0043226                                   organelle        86          11
+## 19 GO:0043227                  membrane-bounded organelle        61           8
+## 20 GO:0043228              non-membrane-bounded organelle        28           3
+##    Expected classic
+## 1      1.98    0.32
+## 2     28.28    0.37
+## 3      2.40    0.44
+## 4      2.40    0.44
+## 5     41.43    0.50
+## 6      1.70    0.53
+## 7      1.84    0.57
+## 8      5.52    0.62
+## 9      8.63    0.64
+## 10     5.37    0.65
+## 11    15.41    0.68
+## 12     1.41    0.79
+## 13     6.51    0.88
+## 14     3.96    0.90
+## 15    12.30    0.92
+## 16    12.59    1.00
+## 17    42.00    1.00
+## 18    12.16    1.00
+## 19     8.63    1.00
+## 20     3.96    1.00</code></pre>
+<div class="sourceCode" id="cb156"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a>allGO_BPx<span class="ot">=</span><span class="fu">usedGO</span>(GOdataBP_Xonly)</span>
+<span id="cb156-2"><a href="#cb156-2" aria-hidden="true" tabindex="-1"></a><span class="co">#performing BH correction on our p values</span></span>
+<span id="cb156-3"><a href="#cb156-3" aria-hidden="true" tabindex="-1"></a>p.adj_BP<span class="ot">=</span><span class="fu">round</span>(<span class="fu">p.adjust</span>(allRes_BPonly<span class="sc">$</span>classic,<span class="at">method=</span><span class="st">&quot;BH&quot;</span>),<span class="at">digits =</span> <span class="dv">4</span>)</span>
+<span id="cb156-4"><a href="#cb156-4" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb156-5"><a href="#cb156-5" aria-hidden="true" tabindex="-1"></a><span class="co"># create the file with all the statistics from GO analysis</span></span>
+<span id="cb156-6"><a href="#cb156-6" aria-hidden="true" tabindex="-1"></a>allResBH_BPonly<span class="ot">=</span><span class="fu">cbind</span>(allRes_BPonly,p.adj_BP)</span>
+<span id="cb156-7"><a href="#cb156-7" aria-hidden="true" tabindex="-1"></a>allResBH_BPonly<span class="ot">=</span>allResBH_BPonly[<span class="fu">order</span>(allResBH_BPonly<span class="sc">$</span>p.adj_BP),]</span>
+<span id="cb156-8"><a href="#cb156-8" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb156-9"><a href="#cb156-9" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO before multiple testing correction</span></span>
+<span id="cb156-10"><a href="#cb156-10" aria-hidden="true" tabindex="-1"></a>results.table.p.bp.x<span class="ot">=</span> allResBH_BPonly[<span class="fu">which</span>(allResBH_BPonly<span class="sc">$</span>classic<span class="sc">&lt;=</span><span class="fl">0.05</span>),]</span>
+<span id="cb156-11"><a href="#cb156-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.p.bp.x) </span></code></pre></div>
+<pre><code>##        GO.ID                                        Term Annotated Significant
+## 1 GO:0033036                  macromolecule localization        26           5
+## 2 GO:1901135 carbohydrate derivative metabolic proces...        22           7
+## 3 GO:0006753      nucleoside phosphate metabolic process        10           4
+## 4 GO:0006091 generation of precursor metabolites and ...        11           4
+##   Expected classic p.adj_BP
+## 1     3.36  0.0078   0.3900
+## 2     2.84  0.0162   0.4050
+## 3     1.29  0.0299   0.4983
+## 4     1.42  0.0424   0.5300</code></pre>
+<div class="sourceCode" id="cb158"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO after multiple testing correction</span></span>
+<span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a>results.table.bh.bp.x<span class="ot">=</span>allResBH_BPonly[<span class="fu">which</span>(allResBH_BPonly<span class="sc">$</span>p.adj<span class="sc">&lt;=</span><span class="fl">0.1</span>),]</span>
+<span id="cb158-3"><a href="#cb158-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.bh.bp.x) </span></code></pre></div>
+<pre><code>## [1] GO.ID       Term        Annotated   Significant Expected    classic    
+## [7] p.adj_BP   
+## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<div class="sourceCode" id="cb160"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a><span class="do">### nope</span></span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a><span class="fu">showSigOfNodes</span>(GOdataBP_Xonly, <span class="fu">score</span>(resultFisher_BP_Xonly), <span class="at">useInfo =</span> <span class="st">&quot;all&quot;</span>, <span class="at">sigForAll=</span><span class="cn">FALSE</span>, <span class="at">firstSigNodes=</span><span class="dv">2</span>,<span class="at">.NO.CHAR=</span><span class="dv">50</span>)</span></code></pre></div>
+<pre><code>## $dag
+## A graphNEL graph with directed edges
+## Number of Nodes = 6 
+## Number of Edges = 5 
+## 
+## $complete.dag
+## [1] &quot;A graph with 6 nodes.&quot;</code></pre>
+<div class="sourceCode" id="cb162"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="do">## try MF and CC </span></span>
+<span id="cb162-2"><a href="#cb162-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb162-3"><a href="#cb162-3" aria-hidden="true" tabindex="-1"></a>allGO_MFx<span class="ot">=</span><span class="fu">usedGO</span>(GOdataMF_Xonly)</span>
+<span id="cb162-4"><a href="#cb162-4" aria-hidden="true" tabindex="-1"></a><span class="co">#performing BH correction on our p values</span></span>
+<span id="cb162-5"><a href="#cb162-5" aria-hidden="true" tabindex="-1"></a>p.adj_MF<span class="ot">=</span><span class="fu">round</span>(<span class="fu">p.adjust</span>(allRes_MFonly<span class="sc">$</span>classic,<span class="at">method=</span><span class="st">&quot;BH&quot;</span>),<span class="at">digits =</span> <span class="dv">4</span>)</span>
+<span id="cb162-6"><a href="#cb162-6" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb162-7"><a href="#cb162-7" aria-hidden="true" tabindex="-1"></a><span class="co"># create the file with all the statistics from GO analysis</span></span>
+<span id="cb162-8"><a href="#cb162-8" aria-hidden="true" tabindex="-1"></a>allResBH_MFonly<span class="ot">=</span><span class="fu">cbind</span>(allRes_MFonly,p.adj_MF)</span>
+<span id="cb162-9"><a href="#cb162-9" aria-hidden="true" tabindex="-1"></a>allResBH_MFonly<span class="ot">=</span>allResBH_MFonly[<span class="fu">order</span>(allResBH_MFonly<span class="sc">$</span>p.adj_MF),]</span>
+<span id="cb162-10"><a href="#cb162-10" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb162-11"><a href="#cb162-11" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO before multiple testing correction</span></span>
+<span id="cb162-12"><a href="#cb162-12" aria-hidden="true" tabindex="-1"></a>results.table.p.mf.x<span class="ot">=</span> allResBH_MFonly[<span class="fu">which</span>(allResBH_MFonly<span class="sc">$</span>classic<span class="sc">&lt;=</span><span class="fl">0.05</span>),]</span>
+<span id="cb162-13"><a href="#cb162-13" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.p.mf.x) </span></code></pre></div>
+<pre><code>##        GO.ID                                        Term Annotated Significant
+## 1 GO:0005215                        transporter activity       102          18
+## 2 GO:0016616 oxidoreductase activity, acting on the C...        16           5
+## 3 GO:0005198                structural molecule activity        16           4
+##   Expected classic p.adj_MF
+## 1    12.75  0.0067    0.335
+## 2     2.00  0.0398    0.710
+## 3     2.00  0.0426    0.710</code></pre>
+<div class="sourceCode" id="cb164"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a><span class="co">#get list of significant GO after multiple testing correction</span></span>
+<span id="cb164-2"><a href="#cb164-2" aria-hidden="true" tabindex="-1"></a>results.table.bh.mf.x<span class="ot">=</span>allResBH_MFonly[<span class="fu">which</span>(allResBH_MFonly<span class="sc">$</span>p.adj<span class="sc">&lt;=</span><span class="fl">0.1</span>),]</span>
+<span id="cb164-3"><a href="#cb164-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.bh.mf.x) </span></code></pre></div>
+<pre><code>## [1] GO.ID       Term        Annotated   Significant Expected    classic    
+## [7] p.adj_MF   
+## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<div class="sourceCode" id="cb166"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb166-1"><a href="#cb166-1" aria-hidden="true" tabindex="-1"></a><span class="do">### nope</span></span>
+<span id="cb166-2"><a href="#cb166-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb166-3"><a href="#cb166-3" aria-hidden="true" tabindex="-1"></a><span class="fu">showSigOfNodes</span>(GOdataBP_Xonly, <span class="fu">score</span>(resultFisher_BP_Xonly), <span class="at">useInfo =</span> <span class="st">&quot;all&quot;</span>, <span class="at">sigForAll=</span><span class="cn">FALSE</span>, <span class="at">firstSigNodes=</span><span class="dv">2</span>,<span class="at">.NO.CHAR=</span><span class="dv">50</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABIAAAASACAYAAACHqDZaAAAEDmlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPpu5syskzoPUpqaSDv41lLRsUtGE2uj+ZbNt3CyTbLRBkMns3Z1pJjPj/KRpKT4UQRDBqOCT4P9bwSchaqvtiy2itFCiBIMo+ND6R6HSFwnruTOzu5O4a73L3PnmnO9+595z7t4LkLgsW5beJQIsGq4t5dPis8fmxMQ6dMF90A190C0rjpUqlSYBG+PCv9rt7yDG3tf2t/f/Z+uuUEcBiN2F2Kw4yiLiZQD+FcWyXYAEQfvICddi+AnEO2ycIOISw7UAVxieD/Cyz5mRMohfRSwoqoz+xNuIB+cj9loEB3Pw2448NaitKSLLRck2q5pOI9O9g/t/tkXda8Tbg0+PszB9FN8DuPaXKnKW4YcQn1Xk3HSIry5ps8UQ/2W5aQnxIwBdu7yFcgrxPsRjVXu8HOh0qao30cArp9SZZxDfg3h1wTzKxu5E/LUxX5wKdX5SnAzmDx4A4OIqLbB69yMesE1pKojLjVdoNsfyiPi45hZmAn3uLWdpOtfQOaVmikEs7ovj8hFWpz7EV6mel0L9Xy23FMYlPYZenAx0yDB1/PX6dledmQjikjkXCxqMJS9WtfFCyH9XtSekEF+2dH+P4tzITduTygGfv58a5VCTH5PtXD7EFZiNyUDBhHnsFTBgE0SQIA9pfFtgo6cKGuhooeilaKH41eDs38Ip+f4At1Rq/sjr6NEwQqb/I/DQqsLvaFUjvAx+eWirddAJZnAj1DFJL0mSg/gcIpPkMBkhoyCSJ8lTZIxk0TpKDjXHliJzZPO50dR5ASNSnzeLvIvod0HG/mdkmOC0z8VKnzcQ2M/Yz2vKldduXjp9bleLu0ZWn7vWc+l0JGcaai10yNrUnXLP/8Jf59ewX+c3Wgz+B34Df+vbVrc16zTMVgp9um9bxEfzPU5kPqUtVWxhs6OiWTVW+gIfywB9uXi7CGcGW/zk98k/kmvJ95IfJn/j3uQ+4c5zn3Kfcd+AyF3gLnJfcl9xH3OfR2rUee80a+6vo7EK5mmXUdyfQlrYLTwoZIU9wsPCZEtP6BWGhAlhL3p2N6sTjRdduwbHsG9kq32sgBepc+xurLPW4T9URpYGJ3ym4+8zA05u44QjST8ZIoVtu3qE7fWmdn5LPdqvgcZz8Ww8BWJ8X3w0PhQ/wnCDGd+LvlHs8dRy6bLLDuKMaZ20tZrqisPJ5ONiCq8yKhYM5cCgKOu66Lsc0aYOtZdo5QCwezI4wm9J/v0X23mlZXOfBjj8Jzv3WrY5D+CsA9D7aMs2gGfjve8ArD6mePZSeCfEYt8CONWDw8FXTxrPqx/r9Vt4biXeANh8vV7/+/16ffMD1N8AuKD/A/8leAvFY9bLAAAAOGVYSWZNTQAqAAAACAABh2kABAAAAAEAAAAaAAAAAAACoAIABAAAAAEAAASAoAMABAAAAAEAAASAAAAAAPt/s10AAEAASURBVHgB7N0F2G1lnT5gUhokFAERRJBQFIwRFbtz7HFk7BhjFGuMGXXszrFlVOwaR/92i6JjgYogBiqpSEh3zf958Fv6eTjncOKLHffvup6ze6313vs7e7373SvWWEMRIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECkyOw5uQ0RUsIECBAgACBKRa4Stq+dXK1ZMtk82TTZONkg2S9ZJ1kreT/kkuTi5MLkvOSs5MzktOTU5KTk9MSRYAAAQIECBCYCAEDQBPxNmoEAQIECBCYCoGt0so9kt2SXZKdkh2T7ZM+Ntf9mgszzd8nxyZHJ79Nfp38YuayA0iKAAECBAgQIDAWAnPdURqLRltIAgQIECBAYOQFrpEl3Ce5aXLj5IZJ71tWXZIHTkq65c6fkm7Jc1ZyTtItfDqY0+dclrT/s3bSrYbWTzZMNkmummyRdCuibk20WbKs6uBPB4J+khyS/HDmukGhQCgCBAgQIEBg9AQMAI3ee2KJCBAgQIDANApsl0bfIbldcuukW/csWR3QOTL5ZdItcbpFzjHJcUkHfjq4M5fVgaFrJjsk10661dGuye5Jl2+tZHadnxsdCDoo+UbyvcSAUBAUAQIECBAgsPgCBoAW/z2wBAQIECBAYBoFOnhy8+Teyd2T6yezq4M9HUz5QXJo0i1tjklGpTo4tGdyo6RbKXVrpe6aNrtv1a2Pvp58Lvls0i2UFAECBAgQIECAAAECBAgQIEBgogU6ONKte96W/DHpwZiHdMDnM8lTk72SJbeuyV0jX1tkCTug9Ybk8GRoWy8vTQ5Onpx09zJFgAABAgQIECBAgAABAgQIEJgoge4u9dLk2GT2oMhvcvt1ye2SdZNJq+7W9tikA1vdPWxoe49F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xAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HAAECBAgQIECAAAECBAgQIDAUUAAailgmQIAAAQIECBAgQIAAAQIECExMQAFoYjvUcAgQIECAAAECBAgQIECAAAECQwEFoKGIZQIECBAgQIAAAQIECBAgQIDAxAQUgCa2Qw2HwBYIHJJ1b7MF62/tqntmA3dL9t7aDXk9AQIE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AgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAssW2GnZG7Q9AgRWSmDv9Pag5PLJZZJLJ5dM9ksumuybdJ0LJnsmuye7JP13x1nJGcmPkx8l30++l3wr+WZySvL15MvJF5MvzNL1NQIECBAgQIDAmgWe+/4T9rnQ7rt99OwNZ19uzS+y4voQ2GnDaRvO3OkO973Oge9YHwM2SgLnX2DX8/9SryRAYIUELpy+Xiu5ZnJYcmhySHKJZGvaHnlxi0MXWeNGWjRqIeizyaeTTyYfSz6VKAwFQSNAgAABAgR+XmCPXXe+fL5+uuJOG7+D+vnnPbKuBXY7a+ezfzECCkDr+s/A4NcioAC0FiXrEFgtgR6d0yLPDZPrJ9dLDk76+LD1yJ2TkpOTLyVfSb6W9OidU5NvJz2q5wdJ122R5szk7GTnpP8OaRHoAkkLQfskLQZdLGlxaf/kgOSyyYFJv7U7aJZb53beut2PJ+9P3pv8V9K+aAQIECBAgACBnwrse+LxG257t9/46bI761vgmD946IZP3/P31jeC0RPYAoH+x5tGgMDqC/T0rRZUbpXcNOkpXIvttCx8IunRNscmxyWfSVpkaTHn/LbT88IWh9badsuKLQD1CKSrJtdIemTSIcl1Z3lwbttOSN6a/EfytqSnmGkECBAgQIDAOhTY5eyzfzpf2fmMnoGuEci3m2f14HKNAIG1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QskfmGVxBD16p6dfNS0G9YidSyY9eueiSY/m2TvpqVt7Jr04c3+JrEf/dCJ2RtKiTrffo3i+m/SooR6906OIvpb0qKIeXdSjjL6cKPQEQSNAgAABAgTWLrDT6Wd84exdd/1kph+ds2gEfiqQSemPUh98708fcIcAAQIECBBYmkAv0PxXSQtEGgECBAgQIECAAAECBAgQIECAwAQFXpYx9eif35rg2AyJAAECBAgQIECAAAECkxTotdQ0AgQIbIlATwFrm9+es+SfBAgQIECAAAECBAgQIDBaAQWg0e4aHSNAgAABAgQIECBAgAABAgQILEdAAWg5jrZCgAABAgQIECBAgAABAgQIEBitgALQaHeNjhEgQIAAAQIECBAgQIAAAQIEliOgALQcR1shQIAAAQIECBAgQIAAAQIECIxWQAFotLtGxwgQIECAAAECBAgQIECAAAECyxFQAFqOo60QIECAAAECBAgQIECAAAECBEYroAA02l2jYwQIECBAgAABAgQIECBAgACB5QgoAC3H0VYIECBAgAABAgQIECBAgAABAqMVUAAa7a7RMQIECBAgQIAAAQIECBAgQIDAcgQUgJbjaCsECBAgQIAAAQIECBAgQIAAgdEKKACNdtfoGAECBAgQIECAAAECBAgQIEBgOQIKQMtxtBUCBAgQIECAAAECBAgQIECAwGgFFIBGu2t0jAABAgQIECBAgAABAgQIECCwHAEFoOU42goBAgQIECBAgAABAgQIECBAYLQCCkCj3TU6RoAAAQIECBAgQIAAAQIECBBYjoAC0HIcbYUAAQIECBAgQIAAAQIECBAgMFoBBaDR7hodI0CAAAECBAgQIECAAAECBAgsR0ABaDmOtkKAAAECBAgQIECAAAECBAgQGK2AAtBod42OESBAgAABAgQIECBAgAABAgSWI6AAtBxHWyFAgAABAgQIECBAgAABAgQIjFZAAWi0u0bHCBAgQIAAAQIECBAgQIAAAQLLEVAAWo6jrRAgQIAAAQIECBAgQIAAAQIERiugADTaXaNjBAgQIECAAAECBAgQIECAAIHlCCgALcfRVggQIECAAAECBAgQIECAAAECoxVQABrtrtExAgQIECBAgAABAgQIECBAgMByBBSAluNoKwQIECBAgAABAgQIECBAgACB0QooAI121+gYAQIECBAgQIAAAQIECBAgQGA5AgpAy3G0FQIECBAgQIAAAQIECBAgQIDAaAUUgEa7a3SMAAECBAgQIECAAAECBAgQILAcAQWg5TjaCgECBAgQIECAAAECBAgQIEBgtAIKQKPdNTpGgAABAgQIECBAgAABAgQIEFiOgALQchxthQABAgQIECBAgAABAgQIECAwWgEFoNHuGh0jQIAAAQIECBAgQIAAAQIECCxHQAFoOY62QoAAAQIECBAgQIAAAQIECBAYrYAC0Gh3jY4RIECAAAECBAgQIECAAAECBJYjoAC0HEdbIUCAAAECBAgQIECAAAECBAiMVkABaLS7RscIECBAgAABAgQIECBAgAABAssRUABajqOtECBAgAABAgQIECBAgAABAgRGK6AANNpdo2MECBAgQIAAAQIECBAgQIAAgeUIKAAtx9FWCBAgQIAAAQIECBAgQIAAAQKjFVAAGu2u0TECBAgQIECAAAECBAgQIECAwHIEFICW42grBAgQIECAAAECBAgQIECAAIHRCigAjXbX6BgBAgQIECBAgAABAgQIECBAYDkCCkDLcbQVAgQIECBAgAABAgQIECBAgMBoBRSARrtrdIwAAQIECBAgQIAAAQIECBAgsBwBBaDlONoKAQIECBAgQIAAAQIECBAgQGC0AgpAo901OkaAAAECBAgQIECAAAECBAgQWI6AAtByHG2FAAECBAgQIECAAAECBAgQIDBaAQWg0e4aHSNAgAABAgQIECBAgAABAgQILEdAAWg5jrZCgAABAgQIECBAgAABAgQIEBitgALQaHeNjhEgQIAAAQIECBAgQIAAAQIEliOgALQcR1shQIAAAQIECBAgQIAAAQIECIxWQAFotLtGxwgQIECAAAECBAgQIECAAAECyxFQAFqOo60QIECAAAECBAgQIECAAAECBEYroAA02l2jYwQIECBAgAABAgQIECBAgACB5QgoAC3H0VYIECBAgAABAgQIECBAgAABAqMVUAAa7a7RMQIECBAgQIAAAQIECBAgQIDAcgQUgJbjaCsECBAgQIAAAQIECBAgQIAAgdEKKACNdtfoGAECBAgQIECAAAECBAgQIEBgOQIKQMtxtBUCBAgQIECAAAECBAgQIECAwGgFFIBGu2t0jAABAgQIECBAgAABAgQIECCwHAEFoOU42goBAgQIECBAgAABAgQIECBAYLQCCkCj3TU6RoAAAQIECBAgQIAAAQIECBBYjoAC0HIcbYUAAQIECBAgQIAAAQIECBAgMFoBBaDR7hodI0CAAAECBAgQIECAAAECBAgsR0ABaDmOtkKAAAECBAgQIECAAAECBAgQGK2AAtBod42OESBAgAABAgQIECBAgAABAgSWI6AAtBxHWyFAgAABAgQIECBAgAABAgQIjFZAAWi0u0bHCBAgQIAAAQIECBAgQIAAAQLLEVAAWo6jrRAgQIAAAQIECBAgQIAAAQIERiugADTaXaNjBAgQIECAAAECBAgQIECAAIHlCCgALcfRVggQIECAAAECBAgQIECAAAECoxVQABrtrtExAgQIECBAgAABAgQIECBAgMByBBSAluNoKwQIECBAgAABAgQIECBAgACB0QooAI121+gYAQIECBAgQIAAAQIECBAgQGA5AgpAy3G0FQIECBAgQIAAAQIECBAgQIDAaAUUgEa7a3SMAAECBAgQIECAAAECBAgQILAcAQWg5TjaCgECBAgQIECAAAECBAgQIEBgtAIKQKPdNTpGgAABAgQIECBAgAABAgQIEFiOgALQchxthQABAgQIECBAgAABAgQIECAwWgEFoNHuGh0jQIAAAQIECBAgQIAAAQIECCxHQAFoOY62QoAAAQIECBAgQIAAAQIECBAYrYAC0Gh3jY4RIECAAAECBAgQIECAAAECBJYjoAC0HEdbIUCAAAECBAgQIECAAAECBAiMVkABaLS7RscIECBAgAABAgQIECBAgAABAssRUABajqOtECBAgAABAgQIECBAgAABAgRGK6AANNpdo2MECBAgQIAAAQIECBAgQIAAgeUIKAAtx9FWCBAgQIAAAQIECBAgQIAAAQKjFVAAGu2u0TECBAgQIECAAAECBAgQIECAwHIEFICW42grBAgQIECAAAECBAgQIECAAIHRCigAjXbX6BgBAgQIECBAgAABAgQIECBAYDkCCkDLcbQVAgQIECBAgAABAgQIECBAgMBoBRSARrtrdIwAAQIECBAgQIAAAQIECBAgsBwBBaDlONoKAQIECBAgQIAAAQIECBAgQGC0AgpAo901OkaAAAECBAgQIECAAAECBAgQWI6AAtByHG2FAAECBAgQIECAAAECBAgQIDBaAQWg0e4aHSNAgAABAgQIECBAgAABAgQILEdAAWg5jrZCgAABAgQIECBAgAABAgQIEBitgALQaHeNjhEgQIAAAQIECBAgQIAAAQIEliOgALQcR1shQIAAAQIECBAgQIAAAQIECIxWQAFotLtGxwgQIECAAAECBAgQIECAAAECyxFQAFqOo60QIECAAAECBAgQIECAAAECBEYroAA02l2jYwQIECBAgAABAgQIECBAgACB5QgoAC3H0VYIECBAgAABAgQIECBAgAABAqMVUAAa7a7RMQIECBAgQIAAAQIECBAgQIDAcgQUgJbjaCsECBAgQIAAAQIECBAgQIAAgdEKKACNdtfoGAECBAgQIECAAAECBAgQIEBgOQIKQMtxtBUCBAgQIECAAAECBAgQIECAwGgFFIBGu2t0jAABAgQIECBAgAABAgQIECCwHAEFoOU42goBAgQIECBAgAABAgQIECBAYLQCCkCj3TU6RoAAAQIECBAgQIAAAQIECBBYjoAC0HIcbYUAAQIECBAgQIAAAQIECBAgMFoBBaDR7hodI0CAAAECBAgQIECAAAECBAgsR0ABaDmOtkKAAAECBAgQIECAAAECBAgQGK2AAtBod42OESBAgAABAgQIECBAgAABAgSWI6AAtBxHWyFAgAABAgQIECBAgAABAgQIjFZAAWi0u0bHCBAgQIAAAQIECBAgQIAAAQLLEVAAWo6jrRAgQIAAAQIECBAgQIAAAQIERiugADTaXaNjBAgQIECAAAECBAgQIECAAIHlCCgALcfRVggQIECAAAECBAgQIECAAAECoxVQABrtrtExAgQIECBAgAABAgQIECBAgMByBBSAluNoKwQIECBAgAABAgQIECBAgACB0QooAI121+gYAQIECBAgQIAAAQIECBAgQGA5AgpAy3G0FQIECBAgQIAAAQIECBAgQIDAaAUUgEa7a3SMAAECBAgQIECAAAECBAgQILAcAQWg5TjaCgECBAgQIECAAAECBAgQIEBgtAIKQKPdNTpGgAABAgQIECBAgAABAgQIEFiOgALQchxthQABAgQIECBAgAABAgQIECAwWgEFoNHuGh0jQIAAAQIECBAgQIAAAQIECCxHQAFoOY62QoAAAQIECBAgQIAAAQIECBAYrYAC0Gh3jY4RIECAAAECBAgQIECAAAECBJYjoAC0HEdbIUCAAAECBAgQIECAAAECBAiMVkABaLS7RscIECBAgAABAgQIECBAgAABAssRUABajqOtECBAgAABAgQIECBAgAABAgRGK6AANNpdo2MECBAgQIAAAQIECBAgQIAAgeUIKAAtx9FWCBAgQIAAAQIECBAgQIAAAQKjFVAAGu2u0TECBAgQIECAAAECBAgQIECAwHIEFICW42grBAgQIECAAAECBAgQIECAAIHRCigAjXbX6BgBAgQIECBAgAABAgQIECBAYDkCCkDLcbQVAgQIECBAgAABAgQIECBAgMBoBRSARrtrdIwAAQIECBAgQIAAAQIECBAgsBwBBaDlONoKAQIECBAgQIAAAQIECBAgQGC0AgpAo901OkaAAAECBAgQIECAAAECBAgQWI6AAtByHG2FAAECBAgQIECAAAECBAgQIDBaAQWg0e4aHSNAgAABAgQIECBAgAABAgQILEdAAWg5jrZCgAABAgQIECBAgAABAgQIEBitgALQaHeNjhEgQIAAAQIECBAgQIAAAQIEliOgALQcR1shQIAAAQIECBAgQIAAAQIECIxWQAFotLtGxwgQIECAAAECBAgQIPD/27sTYEuq+g7A9w0DDGHYBDTgAigiiiJrgRYQIlEhmlJJqaVWFg0Qo0kkLpGYGEyoUsJi1IAaUUNUNC6ACWgQNSioMbgSZBUYB8XogICAzDDDzOT3f3M7tO/OvHlTecu9/b62Dt33nNOnT3/9iip+9kKAAAEC0yMgAJoeR6MQIECAAAECBAgQIECAAAECBIZWQAA0tJfGxAgQIECAAAECBAgQIECAAAEC0yMgAJoeR6MQIECAAAECBAgQIECAAAECBIZWQAA0tJfGxAgQIECAAAECBAgQIECAAAEC0yMgAJoeR6MQIECAAAECBAgQIECAAAECBIZWQAA0tJfGxAjMuMDrc4SLU7ae8SOtO8CBWX015bBZOp7DECBAgAABAgQIECBAgEBfQADkT4HA/BU4Kqf+nJQ3zQJB/bvmnJSnp+w3C8dzCAIECBAgQIAAAQIECBAgQIAAgQgckrImZXnKHilTXc5Lx7UpL53qDul3XH+fpVlvtQn76UqAAAECBAgQIECAAAECBAgQIPD/FPjn7F9hzvmbMM6mBkDbZuyf9I/z4k04jq4ECBAgQIAAAQIECBAgQIAAAQLTILBrxrgvpUKgI1OmsmxqAHR6Bq3xr5jK4PoQIECAAAECBAgQIECAAAECBAhMv0C9A6gCmqtSNpvC8JsSAD0+4z2QsjrlgCmMrQsBAgQIECBAgAABAgQIECBAgMAMCCzKmLekVAj0yimMvykB0EX9cesF0BYCBAgQIECAAAECBAgQIECAAIE5FDg2x64A6PaU7Tcyjwv6fX9nI/2e1e/386wfsZG+mgkQIECAAAECBAgQIECAAAECBGZB4LIco0Kgd2zkWDf1+719kn4L03ZNv9/rJ+mniQABAgQIECBAgAABAgQIECBAYBYF9s2xHkxZmbL3JMddkrYKis6apM+f9vvcmPUWk/TTRIAAAQIECBAgQIAAAQIECBAgMMsC78nxKtz590mOu7EAaMfse2d/nOdOMo4mAgQIECBAgAABAgQIECBAgACBORDYKce8K6VCoOds4PgbC4De3d//cxvYXzUBAgQIECBAgAABAgQIECBAgMAcC5yY41cAdEPK5uuZy2QB0JPTvx4jW5XypPXsq4oAAQIECBAgQIAAAQIECBAgQGAIBCr0uS6lQqDXrmc+kwVAX+zv98717KeKAAECBAgQIECAAAECBAgQIEBgiASOzlwqALo7ZecJ89pQAPSC/j53ZL3DhH38JECAAAECBAgQIECAAAECBAgQGEKBizOnCoHeN2Fu6wuAtkyfm/v9XzWhv58ECBAgQIAAAQIECBAgQIAAAQJDKrBX5lWfhF+dsl9rjusLgE5Ke4VFV6ds1uprkwABAgQIECBAgAABAgQIECBAYMgFzsz8Ktj5cmueEwOgXdJ2b7/fUa1+NgkQIECAAAECBAgQIECAAAECBEZAYLvMcVlKhUAv7M93YgB0br/9gn67FQECBAgQIECAAAECBAgQIECAwIgJHJ/5VgD0g5RFKe0A6OD8XpOyIuWxKRYCBAgQIECAAAECBAgQIECAAIERFFiQOX8npUKgN6e0A6Cv9evflrWFAAECBAgQIECAAAECBAgQIEBghAWOyNwrALov5db+9qX99Y+zXpxiIUCAAAECBAgQIECAAAECBAgQGHGBT2T+FQI1L3xu1r834udl+gQIECBAgAABAgQIECBAgAABAn2B3bJenlLv/KkgqMqVKWMpFgIECBAgQIAAAQIECBAgQIAAgY4InJLzaMKfCoKe1pHzckqyvWMAAByJSURBVBoECBAgQIAAAQIECBAgQIAAAQJ9ga2zXpVSIdB1/TorAgQIECBAgAABAgQIECBAgACBjgmc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CBAgQGC4BARAw3U9zIbA0AjclYBn59bdP1/P70MT9DTLWQl/rkvoc0HKl1JelvBnUfqfnPp6P5CFAAECBAgQIECAAAECBIZHwP9VPzzXwkwIDJXA2b3Nf2k+Byfc2aJV85rc6fOa1u9v/lJrq8EmAQIECBAgQIAAAQIECMy5gABozi+BCRAYDYEtW3cDjcaMzZIAAQIECBAgQIAAAQIEGoGHnudoaqwJECBAgAABAgQIECBAgAABAgQ6JSAA6tTldDIECBAgQIAAAQIECBAgQIAAgUEBAdCgiRoCBAgQIECAAAECBAgQIECAQKcEBECdupxOhgABAgQIECBAgAABAgQIECAwKCAAGjRRQ4AAAQIECBAgQIAAAQIECBDolIAAqFOX08kQIECAAAECBAgQIECAAAECBAYFBECDJmoIECBAgAABAgQIECBAgAABAp0SEAB16nI6GQIECBAgQIAAAQIECBAgQIDAoIAAaNBEDQECBAgQIECAAAECBAgQIECgUwICoE5dTidDgAABAgQIECBAgAABAgQIEBgUEAANmqghQIAAAQIECBAgQIAAAQIECHRKQADUqcvpZAgQIECAAAECBAgQIECAAAECgwICoEETNQQIECBAgAABAgQIECBAgACBTgkIgDp1OZ0MAQIECBAgQIAAAQIECBAgQGBQQAA0aKKGAAECBAgQIECAAAECBAgQINApAQFQpy6nkyFAgAABAgQIECBAgAABAgQIDAoIgAZN1BAgQIAAAQIECBAgQIAAAQIEOiUgAOrU5XQyBAgQIECAAAECBAgQIECAAIFBAQHQoIkaAgQIECBAgAABAgQIECBAgECnBARAnbqcToYAAQIECBAgQIAAAQIECBAgMCggABo0UUOAAAECBAgQIECAAAECBAgQ6JSAAKhTl9PJECBAgAABAgQIECBAgAABAgQGBQRAgyZqCBAgQIAAAQIECBAgQIAAAQKdEhAAdepyOhkCBAgQIECAAAECBAgQIECAwKCAAGjQRA0BAgQIECBAgAABAgQIECBAoFMCCzt1Nk6GwAwL3L7v/r2rX3HCDB/F8KMisGKHh43KVM2TAAECBAgQIECAAIF5LiAAmud/AE5/agIL1vZW9sZ6vWUHHjxepraXXvNFYM2asZXz5VydJwECBAgQIECAAAECoykgABrN62bWsyyw4v57z1209Tbb5LCLZvnQDjfkAmt7vVtPOORxNw75NE2PAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAIHOCPwv2/0jVVtal1MAAAAASUVORK5CYII=" width="576" /></p>
+<pre><code>## $dag
+## A graphNEL graph with directed edges
+## Number of Nodes = 6 
+## Number of Edges = 5 
+## 
+## $complete.dag
+## [1] &quot;A graph with 6 nodes.&quot;</code></pre>
+<div class="sourceCode" id="cb168"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true" tabindex="-1"></a><span class="do">##</span></span>
+<span id="cb168-2"><a href="#cb168-2" aria-hidden="true" tabindex="-1"></a>results.table.p.cc.x<span class="ot">=</span> allRes_CConly[<span class="fu">which</span>(allRes_MFonly<span class="sc">$</span>classic<span class="sc">&lt;=</span><span class="fl">0.05</span>),]</span>
+<span id="cb168-3"><a href="#cb168-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results.table.p.cc.x)</span></code></pre></div>
+<pre><code>##        GO.ID                Term Annotated Significant Expected classic
+## 1 GO:0012505 endomembrane system        14           3     1.98    0.32
+## 2 GO:0016020            membrane       200          28    28.28    0.37
+## 3 GO:1902494   catalytic complex        17           3     2.40    0.44</code></pre>
+<div class="sourceCode" id="cb170"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb170-1"><a href="#cb170-1" aria-hidden="true" tabindex="-1"></a><span class="do">## womp!</span></span></code></pre></div>
+</div>
 </div>
 </div>
 
@@ -1496,8 +2179,21 @@ the annotation? * idk!!!!</p>
           <div id="toc">
        <button type="button" class="close">×</button>
        <ul>
-       <li><a href="#gene-ontology-enrichment-using-togo" id="toc-gene-ontology-enrichment-using-togo">Gene ontology
-       enrichment using toGO?</a></li>
+       <li><a href="#gene-ontology-enrichment-using-topgo" id="toc-gene-ontology-enrichment-using-topgo">Gene ontology
+       enrichment using topGO</a>
+       <ul>
+       <li><a href="#read-in-genegos-mapping-file" id="toc-read-in-genegos-mapping-file">Read in gene:GOs mapping
+       file</a></li>
+       <li><a href="#filter-interesting-genes-by-x-genes-only" id="toc-filter-interesting-genes-by-x-genes-only">filter
+       interesting genes by X genes only</a></li>
+       <li><a href="#create-godata-object-and-interesting-gene-list" id="toc-create-godata-object-and-interesting-gene-list">create
+       GOdata object and interesting gene list</a></li>
+       <li><a href="#results---default" id="toc-results---default">results - default</a></li>
+       <li><a href="#results---default-1" id="toc-results---default-1">results - default</a></li>
+       <li><a href="#redo-again-with-background-of-just-x-genes" id="toc-redo-again-with-background-of-just-x-genes">Redo again
+       with background of just X genes</a></li>
+       <li><a href="#results---default-2" id="toc-results---default-2">results - default</a></li>
+       </ul></li>
        </ul>
      </div>
         </div>
