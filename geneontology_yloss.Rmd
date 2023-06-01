@@ -1,0 +1,291 @@
+---
+title: "gene ontology"
+output:
+  rmdformats::html_clean:
+    code_folding: show
+    default_style: light
+    toc_depth: 6
+    fig_caption: yes
+---
+## Gene ontology enrichment using topGO
+Question: are there any patterns in the types of genes lost (present on X, missing on Y?)
+### Loading packages and data
+```{r}
+library("tidyverse")
+library("httr")
+library("Rgraphviz")
+library("biomaRt")
+library("topGO")
+library("GO.db")
+#genelist<-read_table("genelisthap1.txt")
+### list of blast-confirmed yloss genes
+genelist_blast<-read_table("genelisthap1_blast.txt")
+### list of genes that pass the filter used in the denominator of missingness analysis
+denomGenes<-read_delim("denomgenelist_salorth.txt") %>% 
+  filter(!(grepl("\\|",hap1))) #%>% dplyr::select(hap1) 
+### raw annotation file containing genes w annotated GO terms (not all genes have)  
+annotation<-read_delim("NChap1_final.all.gff",comment = "#",col_names = F, delim = "\t")
+### parsing to extract GO terms, IDs, etc.
+GO_anno <- annotation %>% filter(X3 == "gene" ) %>% dplyr::select(X9) %>% 
+  separate(X9,into=c("anno","GOterm"),sep ="Ontology_term=") %>%
+  separate(GOterm, into=c("GOterm","notes"),sep="Note=") #%>%
+  #filter()
+### create a gene GOs mapping file - matches example in topGO. 
+# Gene names and comma separated GO terms
+GO_map<- GO_anno %>% filter(!is.na(GOterm)) %>%  
+  mutate(ID = str_replace(anno, ";.+", "")) %>% mutate(ID = str_replace(ID, "ID=", "")) %>% 
+  mutate(ID = str_replace(ID, "-RA", "")) %>% 
+  mutate(GOterm = str_replace(GOterm, ";","")) %>%
+  dplyr::select(ID,GOterm) %>% distinct(ID, GOterm, .keep_all = TRUE)
+# same as above but only include the denominator set from the missinggenes R script
+GO_map_denom<-GO_map %>% filter(ID %in% denomGenes$hap1) 
+#only 5000? Not all genes have a go term and not all in GO_map have sal orth
+## writing to .map file. readMappings() only accepts as an external file
+write.table(GO_map_denom,"geneIDsGO_denom.map", row.names=F,col.names = F,quote = F)
+```
+
+### Read in gene:GOs mapping file
+```{r}
+geneID2GO<-readMappings(file="geneIDsGO_denom.map",sep=" ",IDsep=",") 
+
+geneNames <- names(geneID2GO)
+```
+### filter interesting genes by X genes only
+Get genes missing from Y on X only - for now. Opportunity to include autosomal missing genes later on.
+```{r}
+GO_anno_X <- annotation %>%
+  filter(X1 == "X" ) %>%
+  filter(X3 == "gene" )  %>% 
+  separate(X9,into=c("anno","GOterm"),sep ="Ontology_term=") %>%
+  separate(GOterm, into=c("GOterm","notes"),sep="Note=") %>%
+  mutate(anno = str_replace(anno, ";.+", "")) %>% 
+  mutate(anno = str_replace(anno, "ID=", "")) %>% dplyr::select(anno)
+Xgenelist<-genelist_blast %>% filter(hap1 %in% GO_anno_X$anno)
+
+```
+### create GOdata object and interesting gene list
+
+```{r}
+MyInterestingGenes_X<-as.character(Xgenelist$hap1)
+geneList <- factor(as.integer(geneNames %in% MyInterestingGenes_X))
+names(geneList) <- geneNames
+str(geneList)
+GOdataBP_X <- new("topGOdata", ontology = c("BP"), allGenes = geneList,description = "X genes in total set",
+  geneSel = MyInterestingGenes_X, annot = annFUN.gene2GO, gene2GO = geneID2GO, nodeSize = 10)
+GOdataMF_X <- new("topGOdata", ontology = c("MF"), allGenes = geneList,
+  geneSel = MyInterestingGenes_X, annot = annFUN.gene2GO, gene2GO = geneID2GO, nodeSize = 10)
+GOdataCC_X <- new("topGOdata", ontology = c("CC"), allGenes = geneList,
+  geneSel = MyInterestingGenes_X, annot = annFUN.gene2GO, gene2GO = geneID2GO, nodeSize = 10)
+```
+
+### results - default 
+Using topGO weight/elim combo algorithm, fisher stat
+```{r} 
+# define test using the weight01 algorithm (default) with fisher
+resultFisher_BP_X<- runTest(GOdataBP_X, algorithm = "weight01",statistic = "fisher")
+resultFisher_MF_X<- runTest(GOdataMF_X, algorithm = "weight01",statistic = "fisher")
+resultFisher_CC_X<- runTest(GOdataCC_X, algorithm = "weight01",statistic = "fisher")
+```
+### results - default
+note: p-values need FDR correction
+```{r} 
+allRes_BP <- GenTable(GOdataBP_X, ranksOf = "classic", orderBy = "weightFisher",
+                        topNodes = 50,classic = resultFisher_BP_X)
+allRes_MF <- GenTable(GOdataMF_X, classic = resultFisher_MF_X, orderBy = "weightFisher", 
+                      ranksOf = "classic", topNodes = 50)
+allRes_CC <- GenTable(GOdataCC_X, classic = resultFisher_CC_X, orderBy = "weightFisher", 
+                      ranksOf = "classic", topNodes = 50)
+#showSigOfNodes(GOdataBP_X, score(allRes_BP$classic), firstSigNodes = 5, useInfo = 'all')
+#showSigOfNodes(GOdataBP_X,termsP.value = allRes_BP$classic, = 5)
+
+print(allRes_BP)
+print(allRes_MF)
+print(allRes_CC)
+```
+
+```{r} 
+allGO_BP=usedGO(GOdataBP_X)
+#performing BH correction on our p values
+p.adj_BP=round(p.adjust(allRes_BP$classic,method="BH"),digits = 4)
+ 
+# create the file with all the statistics from GO analysis
+allResBH_BP=cbind(allRes_BP,p.adj_BP)
+allResBH_BP=allResBH_BP[order(allResBH_BP$p.adj_BP),]
+ 
+#get list of significant GO before multiple testing correction
+results.table.p.bp= allResBH_BP[which(allResBH_BP$classic<=0.05),]
+print(results.table.p.bp) 
+#get list of significant GO after multiple testing correction
+results.table.bh.bp=allResBH_BP[which(allResBH_BP$p.adj<=0.1),]
+print(results.table.bh.bp)
+# just two top hits
+# GO:0006355 regulation of DNA-templated transcriptio...	
+# GO:0016192 vesicle-mediated transport	
+#####
+#save first top 50 ontolgies sorted by adjusted pvalues
+#write.table(all_res_final[1:50,],"summary_topGO_analysis.csv",sep=",",quote=FALSE,row.names=FALSE)
+ 
+# PLOT the GO hierarchy plot: the enriched GO terms are colored in yellow/red according to significance level
+ 
+# pdf(file='topGOPlot_BP_fullnames.pdf', height=12, width=12)
+# showSigOfNodes(GOdataBP_X, score(resultFisher_BP_X), useInfo = "all", sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)
+# dev.off()
+# 
+# all_res_CC=GenTable(GOdataCC_X, weightFisher=weight_fisher_result_CC, orderBy='weightFisher', topNodes=length(GOdataCC_X))
+# showSigOfNodes(GOdataCC_X, score(weight_fisher_result_CC), useInfo = "all", sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)
+# 
+# showSigOfNodes(GOdataMF_X, score(weight_fisher_result_MF), useInfo = "all", sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)
+```
+
+### Redo again with background of just X genes
+```{r}
+GO_map_denom_x <- GO_map_denom %>% filter(ID %in% GO_anno_X$anno)
+write.table(GO_map_denom_x,"geneIDsGO_denom.map", row.names=F,col.names = F,quote = F)
+
+geneID2GO_x<-readMappings(file="geneIDsGO_denom.map",sep=" ",IDsep=",") 
+
+geneNames_x <- names(geneID2GO_x)
+
+MyInterestingGenes_X<-as.character(Xgenelist$hap1)
+geneList_x <- factor(as.integer(geneNames_x %in% MyInterestingGenes_X))
+names(geneList_x) <- geneNames_x
+str(geneList_x) # 1649 total genes (Vs 5000 ish from before)
+GOdataBP_Xonly <- new("topGOdata", ontology = c("BP"), allGenes = geneList_x,description = "X genes in total set",
+  geneSel = MyInterestingGenes_X, annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+GOdataMF_Xonly <- new("topGOdata", ontology = c("MF"),
+                      allGenes = geneList_x,
+                      description = "X genes in total set",
+                      geneSel = MyInterestingGenes_X, 
+                      annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+GOdataCC_Xonly <- new("topGOdata", ontology = c("CC"),  allGenes = geneList_x,
+                      description = "X genes in total set",
+                      geneSel = MyInterestingGenes_X, 
+                      annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+```
+
+
+```{r}
+# define test using the weight01 algorithm (default) with fisher
+resultFisher_BP_Xonly<- runTest(GOdataBP_Xonly, algorithm = "weight01",statistic = "fisher")
+resultFisher_MF_Xonly<- runTest(GOdataMF_Xonly, algorithm = "weight01",statistic = "fisher")
+resultFisher_CC_Xonly<- runTest(GOdataCC_Xonly, algorithm = "weight01",statistic = "fisher")
+```
+### results - default
+note: p-values need FDR correction
+```{r} 
+allRes_BPonly <- GenTable(GOdataBP_Xonly, ranksOf = "classic", orderBy = "weightFisher",
+                        topNodes = 50,classic = resultFisher_BP_Xonly)
+allRes_MFonly <- GenTable(GOdataMF_Xonly, classic = resultFisher_MF_Xonly, orderBy = "weightFisher", 
+                      ranksOf = "classic", topNodes = 50)
+allRes_CConly <- GenTable(GOdataCC_Xonly, classic = resultFisher_CC_Xonly, orderBy = "weightFisher", 
+                      ranksOf = "classic", topNodes = 20)
+#showSigOfNodes(GOdataBP_X, score(allRes_BP$classic), firstSigNodes = 5, useInfo = 'all')
+#showSigOfNodes(GOdataBP_X,termsP.value = allRes_BP$classic, = 5)
+print(allRes_BPonly)
+print(allRes_MFonly)
+print(allRes_CConly)
+
+allGO_BPx=usedGO(GOdataBP_Xonly)
+#performing BH correction on our p values
+p.adj_BP=round(p.adjust(allRes_BPonly$classic,method="BH"),digits = 4)
+ 
+# create the file with all the statistics from GO analysis
+allResBH_BPonly=cbind(allRes_BPonly,p.adj_BP)
+allResBH_BPonly=allResBH_BPonly[order(allResBH_BPonly$p.adj_BP),]
+ 
+#get list of significant GO before multiple testing correction
+results.table.p.bp.x= allResBH_BPonly[which(allResBH_BPonly$classic<=0.05),]
+print(results.table.p.bp.x) 
+#get list of significant GO after multiple testing correction
+results.table.bh.bp.x=allResBH_BPonly[which(allResBH_BPonly$p.adj<=0.1),]
+print(results.table.bh.bp.x) 
+
+### nope
+
+showSigOfNodes(GOdataBP_Xonly, score(resultFisher_BP_Xonly), useInfo = "all", sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)
+
+## try MF and CC 
+
+allGO_MFx=usedGO(GOdataMF_Xonly)
+#performing BH correction on our p values
+p.adj_MF=round(p.adjust(allRes_MFonly$classic,method="BH"),digits = 4)
+ 
+# create the file with all the statistics from GO analysis
+allResBH_MFonly=cbind(allRes_MFonly,p.adj_MF)
+allResBH_MFonly=allResBH_MFonly[order(allResBH_MFonly$p.adj_MF),]
+ 
+#get list of significant GO before multiple testing correction
+results.table.p.mf.x= allResBH_MFonly[which(allResBH_MFonly$classic<=0.05),]
+print(results.table.p.mf.x) 
+#get list of significant GO after multiple testing correction
+results.table.bh.mf.x=allResBH_MFonly[which(allResBH_MFonly$p.adj<=0.1),]
+print(results.table.bh.mf.x) 
+
+### nope
+
+showSigOfNodes(GOdataBP_Xonly, score(resultFisher_BP_Xonly), useInfo = "all", sigForAll=FALSE, firstSigNodes=2,.NO.CHAR=50)
+##
+results.table.p.cc.x= allRes_CConly[which(allRes_MFonly$classic<=0.05),]
+print(results.table.p.cc.x)
+## womp!
+myterms =results.table.p.bp.x$GO.ID # change it to results.table.bh$GO.ID if working with BH corrected values
+mygenes = genesInTerm(GOdataBP_Xonly, myterms)
+ 
+var=c()
+for (i in 1:length(myterms))
+{
+myterm=myterms[i]
+mygenesforterm= mygenes[myterm][[1]]
+mygenesforterm=paste(mygenesforterm, collapse=',')
+var[i]=paste("GOTerm",myterm,"genes-",mygenesforterm)
+}
+var
+#write.table(var,"genetoGOmapping.txt",sep="\t",quote=F)
+```
+Do it over again but with the retained x genes... y'all
+```{r}
+## hrmgpslgjklsfsg
+#GO_map_denom_x <- GO_map_denom %>% filter(ID %in% GO_anno_X$anno)
+#write.table(GO_map_denom_x,"geneIDsGO_denom.map", row.names=F,col.names = F,quote = F)
+
+geneID2GO_x<-readMappings(file="geneIDsGO_denom.map",sep=" ",IDsep=",") 
+
+geneNames_x <- names(geneID2GO_x)
+retainedgenelist<-GO_map_denom_x %>% filter(!ID %in% MyInterestingGenes_X)
+
+MyInterestingGenes_retained<-as.character(retainedgenelist$ID)
+geneList_retained <- factor(as.integer(geneNames_x %in% MyInterestingGenes_retained))
+names(geneList_retained) <- geneNames_x
+str(geneList_retained) # 1649 total genes (Vs 5000 ish from before)
+GOdataBP_ret <- new("topGOdata", ontology = c("BP"), allGenes = geneList_retained,description = "X genes in total set",
+  geneSel = MyInterestingGenes_retained, annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+GOdataMF_Xonly <- new("topGOdata", ontology = c("MF"),
+                      allGenes = geneList_x,
+                      description = "X genes in total set",
+                      geneSel = MyInterestingGenes_X, 
+                      annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+GOdataCC_Xonly <- new("topGOdata", ontology = c("CC"),  allGenes = geneList_x,
+                      description = "X genes in total set",
+                      geneSel = MyInterestingGenes_X, 
+                      annot = annFUN.gene2GO, gene2GO = geneID2GO_x, nodeSize = 10)
+
+#GOdataBP_ret
+allGO = usedGO(object = GOdataBP_ret) 
+# use it in GenTable as follows:
+GenTable(GOdata, ... ,topNodes = length(allGO))
+resultFisher_BP_ret<- runTest(GOdataBP_ret, algorithm = "weight01",statistic = "fisher")
+resultElim_BP_ret<- runTest(GOdataBP_ret, algorithm = "elim",statistic = "fisher")
+resultElimKS_BP_ret<- runTest(GOdataBP_ret, algorithm = "elim",statistic = "KS")
+
+
+allRes_BP_ret <- GenTable(GOdataBP_ret, ranksOf = "classicFisher", orderBy = "classicFisher",
+                        topNodes = length(allGO),
+                        classicFisher = resultFisher_BP_ret,
+                        elimFisher=resultElim_BP_ret,elimKS=resultElimKS_BP_ret)
+#head(score(resultFisher_BP_ret))
+#pvalFis <- score(resultFisher_BP_ret)
+#head(pvalFis)
+#hist(pvalFis, 50, xlab = "p-values")
+
+```
+

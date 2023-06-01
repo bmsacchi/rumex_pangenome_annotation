@@ -28,6 +28,12 @@ hap1_sequences.fa
 NChap1_final.all.maker.transcripts.fasta.fai
 NChap1.out.fasta.fai
 NChap1.out.fasta
- NChap1_final.all.maker.transcripts.out.fasta
+NChap1_final.all.maker.transcripts.out.fasta
 test
+<<<<<<< HEAD
 blast_h2genome.tsv
+=======
+.DS_Store
+pangenepropn_yloss_may9.png
+NChap1_final.all.gff
+>>>>>>> d70c27725f2bea4ed78421304c14a5e629888ed1
