@@ -11,6 +11,7 @@ output:
 ### data cleaning
 Goal: obtain a list of 1-1 syntenic orthologs that are present in hap1 and sal, but not hap2 - as well as the opposite case. Particularly interested in the sex chromosomes.
 ```{r message=FALSE, warning=FALSE}
+library(renv)
 library(tidyverse)
 library(vroom)
 library(GENESPACE)
