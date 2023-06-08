@@ -17,6 +17,7 @@ wait
 echo "blasting hap1 sequences to hap2 geno"
 
 blastn -db hap2genome -query hap1_sequences.fa \
+	-max_hsps 1 \
 	-outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend qlen sstart send slen evalue bitscore score" \
 	-out blast_h2genome.tsv
 
