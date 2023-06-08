@@ -3,6 +3,26 @@
     "Version": "4.2.2",
     "Repositories": [
       {
+        "Name": "BioCsoft",
+        "URL": "https://bioconductor.org/packages/3.16/bioc"
+      },
+      {
+        "Name": "BioCann",
+        "URL": "https://bioconductor.org/packages/3.16/data/annotation"
+      },
+      {
+        "Name": "BioCexp",
+        "URL": "https://bioconductor.org/packages/3.16/data/experiment"
+      },
+      {
+        "Name": "BioCworkflows",
+        "URL": "https://bioconductor.org/packages/3.16/workflows"
+      },
+      {
+        "Name": "BioCbooks",
+        "URL": "https://bioconductor.org/packages/3.16/books"
+      },
+      {
         "Name": "CRAN",
         "URL": "https://cran.rstudio.com"
       }
@@ -92,6 +112,29 @@
         "utils"
       ],
       "Hash": "0de19224c2cd94f48fbc0d0bc663ce3b"
+    },
+    "BiocManager": {
+      "Package": "BiocManager",
+      "Version": "1.30.20",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "utils"
+      ],
+      "Hash": "a7fca16a50b6ef7771b49d636dd54b57"
+    },
+    "BiocVersion": {
+      "Package": "BiocVersion",
+      "Version": "3.16.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/BiocVersion",
+      "git_branch": "master",
+      "git_last_commit": "c681e06",
+      "git_last_commit_date": "2022-04-26",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "44c5824508b9a10e52dbb505c34fa880"
     },
     "Biostrings": {
       "Package": "Biostrings",
@@ -246,7 +289,7 @@
     },
     "Matrix": {
       "Package": "Matrix",
-      "Version": "1.5-4",
+      "Version": "1.5-4.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -258,7 +301,7 @@
         "stats",
         "utils"
       ],
-      "Hash": "e779c7d9f35cc364438578f334cffee2"
+      "Hash": "38082d362d317745fb932e13956dccbb"
     },
     "R.methodsS3": {
       "Package": "R.methodsS3",
@@ -703,13 +746,13 @@
     },
     "curl": {
       "Package": "curl",
-      "Version": "5.0.0",
+      "Version": "5.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R"
       ],
-      "Hash": "e4f97056611e8e6b8b852d13b7400cf1"
+      "Hash": "2118af9cb164c8d2dddc7b89eaf732d9"
     },
     "data.table": {
       "Package": "data.table",
@@ -1155,7 +1198,7 @@
     },
     "igraph": {
       "Package": "igraph",
-      "Version": "1.4.2",
+      "Version": "1.4.3",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -1171,7 +1214,7 @@
         "stats",
         "utils"
       ],
-      "Hash": "3e476b375c746d899fd53a7281d78191"
+      "Hash": "f7f74f5fbff27d52b1283ac512bc5430"
     },
     "isoband": {
       "Package": "isoband",
@@ -1196,17 +1239,17 @@
     },
     "jsonlite": {
       "Package": "jsonlite",
-      "Version": "1.8.4",
+      "Version": "1.8.5",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "methods"
       ],
-      "Hash": "a4269a09a9b865579b2635c77e572374"
+      "Hash": "3ee4d9899e4db3e976fc82b98d24a31a"
     },
     "knitr": {
       "Package": "knitr",
-      "Version": "1.42",
+      "Version": "1.43",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -1218,7 +1261,7 @@
         "xfun",
         "yaml"
       ],
-      "Hash": "8329a9bcc82943c8069104d4be3ee22d"
+      "Hash": "9775eb076713f627c07ce41d8199d8f6"
     },
     "labeling": {
       "Package": "labeling",
@@ -1284,13 +1327,13 @@
     },
     "matrixStats": {
       "Package": "matrixStats",
-      "Version": "0.63.0",
+      "Version": "1.0.0",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R"
       ],
-      "Hash": "57af0c3da1f1a50680b186591c3359af"
+      "Hash": "9143629fd64335aac6a6250d1c1ed82a"
     },
     "memoise": {
       "Package": "memoise",
@@ -1607,7 +1650,7 @@
     },
     "rmarkdown": {
       "Package": "rmarkdown",
-      "Version": "2.21",
+      "Version": "2.22",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -1627,7 +1670,7 @@
         "xfun",
         "yaml"
       ],
-      "Hash": "493df4ae51e2e984952ea4d5c75786a3"
+      "Hash": "75a01be060d800ceb14e32c666cacac9"
     },
     "rmdformats": {
       "Package": "rmdformats",
@@ -1746,10 +1789,10 @@
     },
     "sys": {
       "Package": "sys",
-      "Version": "3.4.1",
+      "Version": "3.4.2",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "34c16f1ef796057bfa06d3f4ff818a5d"
+      "Hash": "3a1be13d68d47a8cd0bfd74739ca1555"
     },
     "systemfonts": {
       "Package": "systemfonts",
