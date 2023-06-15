@@ -41,7 +41,7 @@ nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))
 # filtering out any pgIDs in that set
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
 # same with salicifolius
-onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
+#onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
 
 ```
 ### Gene loss on Y
@@ -52,11 +52,11 @@ Identify genes that are shared by salicifolius and hap1, but not hap2. Adding po
 #  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
 hasanortho_justsal<-onlysyn %>% 
   filter((hap1!=""|hap2!="")&salicifolius!="")#|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))'
-salorths<-onlysyn_sal %>% filter((hap1!=""|hap2!="")&salicifolius!="")
+#salorths<-onlysyn_sal %>% filter((hap1!=""|hap2!="")&salicifolius!="")
 # yloss genes - have only ortho shared b/w hap1 and sal. y loss.
 #write_delim(hasanortho,"denomgenelist.txt",delim="\t")
 #write_delim(hasanortho_justsal,"denomgenelist_salorth.txt",delim="\t")
-write_csv(salorths, "denomgenelist_salorths.csv")
+#write_csv(salorths, "denomgenelist_salorths.csv")
 hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
 hasanortho<-hasanortho_justsal
 yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
@@ -108,7 +108,7 @@ genes missing from hap2
 genelisth1<-hap1_yloss %>% dplyr::select(hap1)
 genelisth1_chr<-hap1_yloss %>% dplyr::select(hap1,interpChr)
 #genelistsal<-hap1_yloss_redo %>% select(salicifolius)
-write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
+#write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
 # #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
 ##### BLAST
@@ -136,7 +136,7 @@ nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genel
 # group by gene and chromosome match, mutate ranking pid with highest value having rank 1
 tophit<- blastout %>% group_by(qseqid, sseqid) %>%
   mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
-  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn = length/qlen) 
+  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn =length/qlen) 
 #dim(tophit) #1174 genes based on top hit per chr only
 #tophit_eval<- blastout %>% group_by(qseqid, sseqid) %>%
 #  mutate(the_rank  = rank(evalue, ties.method = "random")) %>%
