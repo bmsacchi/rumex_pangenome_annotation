@@ -25,10 +25,10 @@ Loading in wide format from query_pangenes() for each possible reference and bed
 # excluded non representative array members and non-syntenic othogroups (see genespace script)
 hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
 hap2_raw<-data.table::fread("pg_hap2_wide_synonly.txt")
-sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
+#sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
 # this file also contains nsorths
 hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
-hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
+#hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
 #bedfile - mayb enot needed at the moment
 #hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
@@ -50,34 +50,35 @@ Identify genes that are shared by salicifolius and hap1, but not hap2. Adding po
 # keep only genes with at least one ortholog in another genome
 #hasanortho<-onlysyn %>% 
 #  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
-hasanortho_justsal<-onlysyn %>% 
-  filter((hap1!=""|hap2!="")&salicifolius!="")#|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))'
+hasanortho<-onlysyn %>% 
+  filter((hap1!=""|hap2!="")&salicifolius!="")
 #salorths<-onlysyn_sal %>% filter((hap1!=""|hap2!="")&salicifolius!="")
 # yloss genes - have only ortho shared b/w hap1 and sal. y loss.
 #write_delim(hasanortho,"denomgenelist.txt",delim="\t")
 #write_delim(hasanortho_justsal,"denomgenelist_salorth.txt",delim="\t")
 #write_csv(salorths, "denomgenelist_salorths.csv")
 hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
-hasanortho<-hasanortho_justsal
-yloss_pars <- hap1_yloss %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
+#hasanortho<-hasanortho_justsal
+#######################################
+###--- functions----
+#######################################
+## change slr region label
+slr_rename_h1<-function(x){mutate(x,region=if_else(interpChr =="X" & end<=71000000,"PAR1",
                         if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
                         if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
                         if_else(interpChr=="X" & end>367000000,"PAR2",
                         if_else(interpChr=="A1","A1",
                         if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
-summary_yloss_pars <-yloss_pars %>% tibble() %>% group_by(region) %>% summarise(n_yloss=n()) %>% 
-  filter(!is.na(region))
+                        if_else(interpChr=="A4","A4",NA))))))))}
+yloss_pars<-slr_rename_h1(hap1_yloss)
+# summarise numbers by region
+summarisebyregion<-function(x,y){ x %>% tibble() %>%
+  group_by(region) %>% summarise({{y}}:=n()) %>% 
+  filter(!is.na(region))}
+summary_yloss_pars<-summarisebyregion(yloss_pars,n_yloss)
 
-total_pangenes<-hasanortho %>% mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
-summary_total_pangenes<-total_pangenes %>% tibble() %>% group_by(region) %>% summarise(n_total=n()) %>% 
-  filter(!is.na(region))
+total_pangenes<-slr_rename_h1(hasanortho)
+summary_total_pangenes<-summarisebyregion(total_pangenes,n_total)
 
 # chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
 #    mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
@@ -109,7 +110,7 @@ genelisth1<-hap1_yloss %>% dplyr::select(hap1)
 genelisth1_chr<-hap1_yloss %>% dplyr::select(hap1,interpChr)
 #genelistsal<-hap1_yloss_redo %>% select(salicifolius)
 #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
-# #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
+#write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
 ##### BLAST
 Run in ohta because stuff is installed there
@@ -134,9 +135,10 @@ nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genel
 #okhit<- blastout %>% filter(pident > 90) #19537/25326 are 90% id
 ### for each gene with at least one hit - is the top hit on Y1 or Y2?
 # group by gene and chromosome match, mutate ranking pid with highest value having rank 1
-tophit<- blastout %>% group_by(qseqid, sseqid) %>%
-  mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
-  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn =length/qlen) 
+#tophit<- blastout %>% group_by(qseqid, sseqid) %>%
+#  mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
+#  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn =length/qlen) 
+
 #dim(tophit) #1174 genes based on top hit per chr only
 #tophit_eval<- blastout %>% group_by(qseqid, sseqid) %>%
 #  mutate(the_rank  = rank(evalue, ties.method = "random")) %>%
@@ -171,39 +173,26 @@ tophit_partial<- tophit_samechr %>% filter(alignedpropn <= 0.5)
 tophit_notloss<-tophit_samechr %>% filter(alignedpropn > 0.5)
 
 updated_genelist <- genelisth1 %>% filter(!hap1%in%tophit_notloss$qseqid) #%>%filter()  
-write.table(updated_genelist,"genelisthap1_blast.txt",quote=FALSE,sep="\t",row.names=F)
+#write.table(updated_genelist,"genelisthap1_blast.txt",quote=FALSE,sep="\t",row.names=F)
 
 ```
 
 ```{r}
-yloss_blast <- hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid) %>%
-  mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))
-summary_yloss_blast <-yloss_blast %>% tibble() %>% group_by(region) %>% summarise(n_blastconfirmedloss=n()) %>% 
-  filter(!is.na(region))
+yloss_blast<- slr_rename_h1((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid)))
+summary_yloss_blast <-summarisebyregion(yloss_blast,n_blastconfirmedloss)
 
-yloss_partial <- hap1_yloss  %>% filter(hap1%in%tophit_partial$qseqid) %>%
-  mutate(region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA)))))))) 
-summary_yloss_partial <-yloss_partial %>% tibble() %>% group_by(region) %>% summarise(n_partialloss=n()) %>% 
-  filter(!is.na(region))
-mylist<-list(summary_total_pangenes,summary_yloss_pars,summary_yloss_blast,summary_yloss_partial)
+yloss_partial <- slr_rename_h1((filter(hap1_yloss,hap1%in%tophit_partial$qseqid))) 
+summary_yloss_partial <-summarisebyregion(yloss_partial,n_partialloss)
+
+mylist<-list(summary_total_pangenes,summary_yloss_pars,
+             summary_yloss_blast,summary_yloss_partial)
 
 combinedsummary<-mylist %>% purrr::reduce(left_join,by="region")
 propnsummary<-combinedsummary %>%
   mutate(propn_yloss=n_yloss/n_total, 
          propn_blastconfirmedloss=n_blastconfirmedloss/n_total,
-         propn_partialloss=n_partialloss/n_total) %>% 
+         propn_partiallosstot=n_partialloss/n_total, 
+         propn_partiallossbl=n_partialloss/n_blastconfirmedloss) %>% 
   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 
 print(propnsummary)
@@ -220,32 +209,29 @@ nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))
 
 onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
 
-
-#onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906?
-#hasanortho<-onlysyn2 %>% filter((hap1!=""|hap2!="")&salicifolius!="")
-#hasanortho2<-onlysyn2 %>% 
-#  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
-hasanortho2_fixed<-onlysyn2 %>% 
+hasanortho2<-onlysyn2 %>% 
   filter(((hap1!=""|hap2!="")&salicifolius!=""))
-hasanortho2<-hasanortho2_fixed
-hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")  #number doesn't change (expected)
+hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
 
-a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="Y1"|interpChr=="Y2")
+#a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+#  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
 
-b_xloss<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
-  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" |interpChr=="Y1"|interpChr=="Y2")
+#b_xloss<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
+#  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
 
-pars_xloss <- hap2_xloss %>% 
-  mutate(region=if_else(interpChr =="Y1" & (end > 272000000 & end <= 343398141),"PAR1",
-                        if_else(interpChr =="Y1" & (end>64000000  & end<=2720000000),"OldY1",
-                        if_else(interpChr=="Y1" & end<=64000000,"NewY1", 
-                        if_else(interpChr=="Y2" & end<=121000000,"PAR2",
-                        if_else(interpChr=="Y2"& (end>121000000&end<=159000000),"NewY2",
-                        if_else(interpChr=="Y2" & end>159000000, "OldY2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))))
+slr_rename_h2<- function(x){mutate(x,
+    region=if_else(interpChr =="Y1" & 
+    (end > 272000000 & end <= 343398141),"PAR1",
+    if_else(interpChr =="Y1" & (end>64000000  & end<=2720000000),"OldY1",
+    if_else(interpChr=="Y1" & end<=64000000,"NewY1", 
+    if_else(interpChr=="Y2" & end<=121000000,"PAR2",
+    if_else(interpChr=="Y2"& (end>121000000&end<=159000000),"NewY2",
+    if_else(interpChr=="Y2" & end>159000000, "OldY2",
+    if_else(interpChr=="A1","A1",
+    if_else(interpChr=="A2","A2",
+    if_else(interpChr=="A4","A4",NA))))))))))}
+pars_xloss<-slr_rename_h2(hap2_xloss)
+
 summary_xloss_pars <-pars_xloss %>% group_by(region) %>% summarise(n=n()) %>% 
   filter(!is.na(region))
 
