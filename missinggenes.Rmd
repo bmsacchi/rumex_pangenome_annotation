@@ -196,7 +196,7 @@ propnsummary<-combinedsummary %>%
   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 
 print(propnsummary)
-write_delim(propnsummary,"summary_yloss.txt")
+#write_delim(propnsummary,"summary_yloss.txt")
 ```
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 
@@ -242,7 +242,7 @@ chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="regi
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
 ## plot proportions 
 print(chrpropnPAR_xloss)
-write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
+#write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
 ```
 ### plotting y loss
 pie chart? bar plot? lets see...
@@ -261,7 +261,7 @@ df1<- propnsummary %>%
   pivot_longer(cols=2:4, values_to = "number") 
 ggplot(df1, aes(region, number, fill=name)) + geom_col(position="stack") +
   theme_classic() 
-ggsave("barplot_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
+#ggsave("barplot_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
 ##"
 #install.packages("wesanderson")
 library(wesanderson)
@@ -282,7 +282,7 @@ c<-ggplot(df1oldX, aes(x="", y=number, fill=name)) +
 
 library(cowplot)
 cowplot::plot_grid(a,b,c,labels = c("Autosome","newX","oldX"))
-ggsave("pie_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
+#ggsave("pie_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
 
 
 ```
