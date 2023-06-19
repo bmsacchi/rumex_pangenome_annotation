@@ -231,35 +231,64 @@ slr_rename_h2<- function(x){mutate(x,
     if_else(interpChr=="A2","A2",
     if_else(interpChr=="A4","A4",NA))))))))))}
 pars_xloss<-slr_rename_h2(hap2_xloss)
+summary_xloss_pars<-summarisebyregion(pars_xloss,n_xloss)
 
-summary_xloss_pars <-pars_xloss %>% group_by(region) %>% summarise(n=n()) %>% 
-  filter(!is.na(region))
+total_pangenes2<-slr_rename_h2(hasanortho2)
 
-total_pangenes2<-hasanortho2 %>% 
-  mutate(region=if_else(interpChr =="Y1" & (end > 272000000 & end <= 343398141),"PAR1",
-                        if_else(interpChr =="Y1" & (end>64000000  & end<=2720000000),"OldY1",
-                        if_else(interpChr=="Y1" & end<=64000000,"NewY1", 
-                        if_else(interpChr=="Y2" & end<=121000000,"PAR2",
-                        if_else(interpChr=="Y2"& (end>121000000&end<=159000000),"NewY2",
-                        if_else(interpChr=="Y2" & end>159000000, "OldY2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))))
-summary_total_pangenes2 <-total_pangenes2 %>% group_by(region) %>% summarise(n=n()) %>% 
-  filter(!is.na(region))
+summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
 
-chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region",suffix=c(".total",".notonhap1")) %>% 
-   mutate(., propn=n.notonhap1/n.total) %>% mutate(.,percent = propn*100) %>%
+chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region") %>% 
+   mutate(., propn=n_xloss/n_total)  %>%
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
 ## plot proportions 
 print(chrpropnPAR_xloss)
 write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
+```
+### plotting y loss
+pie chart? bar plot? lets see...
+```{r}
+df<-propnsummary %>% mutate(propn_notloss = 1)%>%
+   select(1,7,8,10) %>% 
+  pivot_longer(cols=2:4,values_to = "summary")
 
-#ggplot(chrpropnPAR_xloss) + geom_col(aes(x=region,y=propn)) + 
-#  theme_classic() + 
-#  ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-#ggsave("pangenepropn_yloss_redo.png", width=6,height=4) 
+ggplot(df, aes(region,summary,fill = name)) + geom_col(position="fill")
+### ick
+### --- plot of numbers genes not lost, partially lost, and completely lost --- ###
+df1<- propnsummary %>% 
+  mutate(n_notloss = n_total - n_blastconfirmedloss) %>% 
+  mutate(n_totallylost = n_blastconfirmedloss - n_partialloss) %>%
+  select(1,11,5,10) %>%
+  pivot_longer(cols=2:4, values_to = "number") 
+ggplot(df1, aes(region, number, fill=name)) + geom_col(position="stack") +
+  theme_classic() 
+ggsave("barplot_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
+##"
+#install.packages("wesanderson")
+library(wesanderson)
+### --- pie chart? --- ####
+df1oldX<- filter(df1, region == "OldX")
+df1newX<-filter(df1, region == "NewX")
+df1auto<-filter(df1, str_detect(region,"A."))
+
+a<-ggplot(df1auto, aes(x="", y=number, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+b<-ggplot(df1newX, aes(x="", y=number, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+c<-ggplot(df1oldX, aes(x="", y=number, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+
+library(cowplot)
+cowplot::plot_grid(a,b,c,labels = c("Autosome","newX","oldX"))
+ggsave("pie_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
+
+
 ```
 
+```{r}
+
+```
 
 
