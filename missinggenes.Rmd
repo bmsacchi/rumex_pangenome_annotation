@@ -8,17 +8,18 @@ output:
     fig_caption: yes
 ---
 
-### data cleaning
+### Setup and data cleaning
+
 Goal: obtain a list of 1-1 syntenic orthologs that are present in hap1 and sal, but not hap2 - as well as the opposite case. Particularly interested in the sex chromosomes.
+
 ```{r message=FALSE, warning=FALSE}
 library(renv)
 library(tidyverse)
 library(vroom)
 library(GENESPACE)
+library(googlesheets4)
 setwd("~/Dropbox/rumex_pangenome_annotation")
 ```
-#### pre-cleaning using grep
-
 #### raw files
 Loading in wide format from query_pangenes() for each possible reference and bed files.
 ```{r echo=TRUE, message=FALSE}
@@ -32,6 +33,7 @@ hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
 #bedfile - mayb enot needed at the moment
 #hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
+
 ### Filtering pangenome IDs w NS orths
 Eliminating pangenome ID groups w non-syn orthogroup members. This is to get a more conservative set of "gene loss" candidates. NS orths are still of interest will be analyzed separately.
 ```{r}
@@ -42,8 +44,8 @@ nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
 # same with salicifolius
 #onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
-
 ```
+
 ### Gene loss on Y
 Identify genes that are shared by salicifolius and hap1, but not hap2. Adding position of PARS and correct denominator for calculating proportions.
 ```{r}
@@ -92,18 +94,8 @@ summary_total_pangenes<-summarisebyregion(total_pangenes,n_total)
 ```
 
 #### results so far
-genes missing from hap2 
 
-```{r}
-
-#zoestuff<-filter(onlysyn,hap1!="",hap2!="",salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
-## at least one
-#zoestuff2<-filter(onlysyn_sal,(hap1!=""|hap2!="") &salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
-#zoestuff2<-filter(onlysyn_sal,(hap1!=""|hap2!="") &salicifolius!="") %>% select(hap1,hap2,salicifolius) #%>% n_distinct()
-#write.csv(zoestuff2, "syntenic_orthos_sal.csv",quote = F,row.names = F)
-#zoestuff3<-read.csv("pg_hap1_wide_onetoone.txt")
-```
-#### list for blasting genes against hap2 to confirm their loss
+genes missing from hap2 \#### list for blasting genes against hap2 to confirm their loss
 
 ```{r}
 genelisth1<-hap1_yloss %>% dplyr::select(hap1)
@@ -112,12 +104,16 @@ genelisth1_chr<-hap1_yloss %>% dplyr::select(hap1,interpChr)
 #write.table(genelisth1,"genelisthap1.txt",quote=FALSE,sep="\t",row.names=F)
 #write.table(genelistsal, "genelistsal.txt",quote=FALSE,sep="\t")
 ```
+
 ##### BLAST
+
 Run in ohta because stuff is installed there
+
 ```{bash eval=TRUE, error=FALSE, warning=FALSE}
 # ./blast_genome.sh
 cat blast_genome.sh
 ```
+
 #### futher analysis of blast output in R
 
 ```{r, warning=FALSE,message=FALSE}
@@ -160,7 +156,9 @@ tophit_geneonly<- blastout %>% group_by(qseqid) %>%
 #tophit_partial<- tophit %>% filter(alignedpropn <= 0.5)
 #tophit_notloss<-tophit %>% filter(alignedpropn > 0.5)
 ```
+
 ### exclude paralogs from blast top hit list
+
 ```{r}
 tophit_samechr<- tophit_geneonly %>%
   left_join(genelisth1_chr,by=c("qseqid"="hap1")) %>%  
@@ -183,6 +181,14 @@ summary_yloss_blast <-summarisebyregion(yloss_blast,n_blastconfirmedloss)
 
 yloss_partial <- slr_rename_h1((filter(hap1_yloss,hap1%in%tophit_partial$qseqid))) 
 summary_yloss_partial <-summarisebyregion(yloss_partial,n_partialloss)
+write.csv(yloss_partial,"yloss_partial_list.csv")
+## create complete loss file
+complete_yloss<- slr_rename_h1((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid))) %>% filter(!hap1%in%tophit_partial$qseqid)
+write.csv(complete_yloss,"complete_yloss.csv")
+#sheet<-gs4_create("yloss_partial_list",sheets =yloss_partial)
+retained_on_y<-slr_rename_h1((hap1_yloss %>% filter(hap1%in%tophit_notloss$qseqid)))
+write.csv(retained_on_y,"retained_y.csv")
+
 
 mylist<-list(summary_total_pangenes,summary_yloss_pars,
              summary_yloss_blast,summary_yloss_partial)
@@ -196,22 +202,27 @@ propnsummary<-combinedsummary %>%
   mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
 
 print(propnsummary)
+#sheet1 <- gs4_create("yloss_summary_jun23_23", sheets = propnsummary)
+
 #write_delim(propnsummary,"summary_yloss.txt")
 ```
+
 e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, one with 83. all on X
 
 ## control/opposite - what about hap1 gene loss
+
 control-ish (aka is there X loss?)
+
 ```{r}
-hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
-
-nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
-
-onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
-
-hasanortho2<-onlysyn2 %>% 
-  filter(((hap1!=""|hap2!="")&salicifolius!=""))
-hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
+# hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
+# 
+# nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
+# 
+# onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
+# 
+# hasanortho2<-onlysyn2 %>% 
+#   filter(((hap1!=""|hap2!="")&salicifolius!=""))
+# hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
 
 #a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
 #  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
@@ -219,33 +230,81 @@ hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
 #b_xloss<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
 #  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
 
-slr_rename_h2<- function(x){mutate(x,
-    region=if_else(interpChr =="Y1" & 
-    (end > 272000000 & end <= 343398141),"PAR1",
-    if_else(interpChr =="Y1" & (end>64000000  & end<=2720000000),"OldY1",
-    if_else(interpChr=="Y1" & end<=64000000,"NewY1", 
-    if_else(interpChr=="Y2" & end<=121000000,"PAR2",
-    if_else(interpChr=="Y2"& (end>121000000&end<=159000000),"NewY2",
-    if_else(interpChr=="Y2" & end>159000000, "OldY2",
-    if_else(interpChr=="A1","A1",
-    if_else(interpChr=="A2","A2",
-    if_else(interpChr=="A4","A4",NA))))))))))}
-pars_xloss<-slr_rename_h2(hap2_xloss)
-summary_xloss_pars<-summarisebyregion(pars_xloss,n_xloss)
+# slr_rename_h2<- function(x){mutate(x,
+#   region=if_else(interpChr=="Y1" & end<=64000000,"NewY1",
+#          if_else(interpChr =="Y1" & (end>64000000 & end<=272000000),"OldY1",
+#          if_else(interpChr =="Y1" & (end > 272000000 & end <= 344000000),"PAR1",
+#     if_else(interpChr=="Y2" & end<=121000000,"PAR2",
+#     if_else(interpChr=="Y2"& (end>121000000 & end<=159000000),"NewY2",
+#     if_else(interpChr=="Y2" & end>159000000, "OldY2",
+#     if_else(interpChr=="A1","A1",
+#     if_else(interpChr=="A2","A2",
+#     if_else(interpChr=="A4","A4",NA))))))))))}
 
-total_pangenes2<-slr_rename_h2(hasanortho2)
+# pars_xloss<-slr_rename_h2(hap2_xloss)
+# 
+# summary_xloss_pars<-summarisebyregion(pars_xloss,n_xloss)
+# 
+# total_pangenes2<-slr_rename_h2(hasanortho2)
+# 
+# summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
+# 
+# chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region") %>% 
+#    mutate(., propn=n_xloss/n_total)  %>%
+#    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
+# ## plot proportions 
+# print(chrpropnPAR_xloss)
+# #sheet2 <- gs4_create("xloss_summary_jun23_23", sheets = chrpropnPAR_xloss)
+#write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
+```
+```{r}
+## redo b/c totals look really weird!
+slr_rename_h2_fix<- function(x){mutate(x,
+  region=if_else(chr=="Y1" & end<=64000000,"NewY1",
+         if_else(chr =="Y1" & (end>64000000 & end<=272000000),"OldY1",
+         if_else(chr =="Y1" & (end > 272000000 & end <= 344000000),"PAR1",
+    if_else(chr=="Y2" & end<=121000000,"PAR2",
+    if_else(chr=="Y2"& (end>121000000 & end<=159000000),"NewY2",
+    if_else(chr=="Y2" & end>159000000, "OldY2",
+    if_else(chr=="A1","A1",
+    if_else(chr=="A2","A2",
+    if_else(chr=="A4","A4",NA))))))))))}
 
-summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
+pars_xloss_fix<-slr_rename_h2_fix(hap2_xloss)
 
-chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region") %>% 
+summary_xloss_pars_fix<-summarisebyregion(pars_xloss_fix,n_xloss)
+
+total_pangenes2_fix<-slr_rename_h2_fix(hasanortho2)
+
+summary_total_pangenes2_fix<-summarisebyregion(total_pangenes2_fix,n_total)
+
+chrpropnPAR_xloss_fix<-full_join(summary_total_pangenes2_fix,summary_xloss_pars_fix,by="region") %>% 
    mutate(., propn=n_xloss/n_total)  %>%
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
 ## plot proportions 
 print(chrpropnPAR_xloss)
-#write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
+print(chrpropnPAR_xloss_fix)
+
+
+
+slr_rename_h1_fix<-function(x){mutate(x,region=if_else(chr =="X" & end<=71000000,"PAR1",
+                        if_else(chr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(chr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(chr=="X" & end>367000000,"PAR2",
+                        if_else(chr=="A1","A1",
+                        if_else(chr=="A2","A2",
+                        if_else(chr=="A4","A4",NA))))))))}
+
+pars_yloss_fix<-slr_rename_h1_fix(hap1_yloss)
+summary_yloss_pars_fix<-summarisebyregion(pars_yloss_fix,n_yloss)
+
+
 ```
+
 ### plotting y loss
+
 pie chart? bar plot? lets see...
+
 ```{r}
 df<-propnsummary %>% mutate(propn_notloss = 1)%>%
    select(1,7,8,10) %>% 
@@ -265,30 +324,75 @@ ggplot(df1, aes(region, number, fill=name)) + geom_col(position="stack") +
 ##"
 #install.packages("wesanderson")
 library(wesanderson)
+
+library(cowplot)
 ### --- pie chart? --- ####
 df1oldX<- filter(df1, region == "OldX")
 df1newX<-filter(df1, region == "NewX")
-df1auto<-filter(df1, str_detect(region,"A."))
+df1auto<-filter(df1, str_detect(region,"A.")) %>% group_by(name) %>% summarise(number=sum(number))
+dfPAR1<-filter(df1, region == "PAR1")
+dfPAR2<-filter(df1, region == "PAR2")
 
 a<-ggplot(df1auto, aes(x="", y=number, fill=name)) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) + theme_void()
-b<-ggplot(df1newX, aes(x="", y=number, fill=name)) +
+b<-ggplot(df1oldX, aes(x="", y=number, fill=name)) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) + theme_void()
-c<-ggplot(df1oldX, aes(x="", y=number, fill=name)) +
+c<-ggplot(df1newX, aes(x="", y=number, fill=name)) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) + theme_void()
+d<-ggplot(dfPAR1, aes(x="", y=number, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+e<-ggplot(dfPAR2, aes(x="", y=number, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+```
 
-library(cowplot)
-cowplot::plot_grid(a,b,c,labels = c("Autosome","newX","oldX"))
-#ggsave("pie_geneloss.jpg",dpi = 300, width = 6, height = 4, units = "in")
+Combine legend <https://wilkelab.org/cowplot/articles/shared_legends.html>
+
+```{r}
+prow <- plot_grid(
+  a + theme(legend.position="none"),
+  b + theme(legend.position="none"),
+  c + theme(legend.position="none"),
+  d + theme(legend.position = "none"),
+  e + theme(legend.position = "none"),
+  align = 'vh',
+  labels = c("Autosomes","Old Y","New Y","PAR1","PAR2"),
+  hjust = 0,
+  label_y=0.3,
+  nrow = 1
+)
+
+
+prow
+legend <- cowplot::get_legend(a + 
+              theme(legend.box.margin = margin(0, 0, 0, 25))+
+              scale_fill_discrete(name="Paternal haplotype", 
+              labels=c("Retained genes", "Partially lost genes", "Completely lost genes")))
+
+# extract a legend that is laid out horizontally
+plot_grid(prow, legend, rel_widths = c(3, 1))
+ggsave("pie_geneloss_june23.jpg",dpi = 300, width = 10, height = 4, units = "in")
 
 
 ```
 
 ```{r}
+testtest<-dplyr::setdiff(total_pangenes$salicifolius,total_pangenes2$salicifolius)
+## 551 diff 
+testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
+## 481
+testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
 
 ```
 
+#### 
 
+Pie plots are terrible, using suggestion from Zoe for bar plots
+
+```{r}
+
+```
