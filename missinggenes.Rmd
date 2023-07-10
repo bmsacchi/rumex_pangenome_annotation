@@ -26,12 +26,7 @@ Loading in wide format from query_pangenes() for each possible reference and bed
 # excluded non representative array members and non-syntenic othogroups (see genespace script)
 hap1_raw<-data.table::fread("pg_hap1_wide_synonly.txt")
 hap2_raw<-data.table::fread("pg_hap2_wide_synonly.txt")
-#sal_raw<-data.table::fread("pg_sal_wide_synonly.txt")
-# this file also contains nsorths
 hap1_nonsyn<-data.table::fread("pg_hap1_wide.txt")
-#hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
-#bedfile - mayb enot needed at the moment
-#hap1_bed<-vroom("hap1.bed", col_names = F)
 ```
 
 ### Filtering pangenome IDs w NS orths
@@ -49,29 +44,25 @@ onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
 ### Gene loss on Y
 Identify genes that are shared by salicifolius and hap1, but not hap2. Adding position of PARS and correct denominator for calculating proportions.
 ```{r}
-# keep only genes with at least one ortholog in another genome
-#hasanortho<-onlysyn %>% 
-#  filter(((hap1!=""|hap2!="")&salicifolius!="")|((hap1!=""|salicifolius!="")&hap2!="")|((hap2!=""|salicifolius!="")&hap1!=""))
 hasanortho<-onlysyn %>% 
   filter((hap1!=""|hap2!="")&salicifolius!="")
-#salorths<-onlysyn_sal %>% filter((hap1!=""|hap2!="")&salicifolius!="")
-# yloss genes - have only ortho shared b/w hap1 and sal. y loss.
 #write_delim(hasanortho,"denomgenelist.txt",delim="\t")
 #write_delim(hasanortho_justsal,"denomgenelist_salorth.txt",delim="\t")
 #write_csv(salorths, "denomgenelist_salorths.csv")
 hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
-#hasanortho<-hasanortho_justsal
+
 #######################################
 ###--- functions----
 #######################################
 ## change slr region label
-slr_rename_h1<-function(x){mutate(x,region=if_else(interpChr =="X" & end<=71000000,"PAR1",
-                        if_else(interpChr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(interpChr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(interpChr=="X" & end>367000000,"PAR2",
-                        if_else(interpChr=="A1","A1",
-                        if_else(interpChr=="A2","A2",
-                        if_else(interpChr=="A4","A4",NA))))))))}
+# major change from prev version: use chr instead of interpChr (for more accurate placement of SLRs)
+slr_rename_h1<-function(x){mutate(x,region=if_else(chr =="X" & end<=71000000,"PAR1",
+                        if_else(chr =="X" & (end>71000000 & end<=261000000),"OldX",
+                        if_else(chr=="X" & (end>261000000 & end<=367000000),"NewX", 
+                        if_else(chr=="X" & end>367000000,"PAR2",
+                        if_else(chr=="A1","A1",
+                        if_else(chr=="A2","A2",
+                        if_else(chr=="A4","A4",NA))))))))}
 yloss_pars<-slr_rename_h1(hap1_yloss)
 # summarise numbers by region
 summarisebyregion<-function(x,y){ x %>% tibble() %>%
@@ -81,21 +72,12 @@ summary_yloss_pars<-summarisebyregion(yloss_pars,n_yloss)
 
 total_pangenes<-slr_rename_h1(hasanortho)
 summary_total_pangenes<-summarisebyregion(total_pangenes,n_total)
-
-# chrpropnPAR<-full_join(summary_total_pangenes,summary_yloss_pars,by="region",suffix=c(".total",".notonhap2")) %>% 
-#    mutate(., propn=n.notonhap2/n.total) %>% mutate(.,percent = propn*100) %>%
-#    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldX","NewX","PAR2"))) 
-## plot proportions 
-
-# ggplot(chrpropnPAR) + geom_col(aes(x=region,y=propn)) + 
-#   theme_classic() + 
-#   ylab("proportion annotated pangenes\nshared by haplotype 1 and salicifolius\n with no haplotype 2 ortholog")
-#ggsave("pangenepropn_yloss_may9.png", width=6,height=4) 
 ```
 
 #### results so far
 
-genes missing from hap2 \#### list for blasting genes against hap2 to confirm their loss
+genes missing from hap2 
+#### list for blasting genes against hap2 to confirm their loss
 
 ```{r}
 genelisth1<-hap1_yloss %>% dplyr::select(hap1)
@@ -126,35 +108,10 @@ blastout<-read_tsv("blast_h2genome.tsv",
 blast_pos<-full_join(blastout,hap2_raw,by=c("qseqid"="hap1"))  %>% add_count(qseqid) 
 ### which genes, out of any, are no hits in hap2 genome
 hits<-blastout %>% dplyr::select(qseqid) %>% distinct()
-nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid")) # 117 genes in genelist do not have a hit
-# not a surprise, its a big genome! and lots might be garbage!
-#okhit<- blastout %>% filter(pident > 90) #19537/25326 are 90% id
-### for each gene with at least one hit - is the top hit on Y1 or Y2?
-# group by gene and chromosome match, mutate ranking pid with highest value having rank 1
-#tophit<- blastout %>% group_by(qseqid, sseqid) %>%
-#  mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
-#  filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn =length/qlen) 
-
-#dim(tophit) #1174 genes based on top hit per chr only
-#tophit_eval<- blastout %>% group_by(qseqid, sseqid) %>%
-#  mutate(the_rank  = rank(evalue, ties.method = "random")) %>%
-#  filter(the_rank == 1) %>% select(-the_rank) # pick the ones with the lowest e-value
-#setdiff(tophit$qseqid,tophit_eval$qseqid) # same! whether we ranked based on percent id or e val
-#tophitY<-filter(tophit,grepl("Y.",sseqid)) # get all the Y1 and Y2 hits
-#dim(tophitY) # 418 genes have a top hit on Y1 or Y2
-#dim(filter(tophitY, sseqid == "Y1")) # 198 on Y1
-#dim(filter(tophitY, sseqid == "Y2")) # 220 on Y2
+nohit<- anti_join(genelisth1,hits, by = c("hap1"="qseqid"))
 tophit_geneonly<- blastout %>% group_by(qseqid) %>%
   mutate(the_rank  = rank(-pident, ties.method = "random")) %>%
   filter(the_rank == 1) %>% dplyr::select(-the_rank) %>% mutate(alignedpropn = length/qlen)          
-# what is the proportion of query gene aligned to hap2?
-#tophitY_prop<- tophitY #%>% mutate(alignedpropn = length/qlen) 
-## filter out genes that have less than half of their sequence length aligned to hap2
-#tophitY_partialloss <- tophitY %>% filter(alignedpropn < 0.5)
-#tophitY_notloss <- tophitY %>% filter(alignedpropn > 0.5)
-
-#tophit_partial<- tophit %>% filter(alignedpropn <= 0.5)
-#tophit_notloss<-tophit %>% filter(alignedpropn > 0.5)
 ```
 
 ### exclude paralogs from blast top hit list
@@ -170,7 +127,7 @@ tophit_samechr<- tophit_geneonly %>%
 tophit_partial<- tophit_samechr %>% filter(alignedpropn <= 0.5)
 tophit_notloss<-tophit_samechr %>% filter(alignedpropn > 0.5)
 
-updated_genelist <- genelisth1 %>% filter(!hap1%in%tophit_notloss$qseqid) #%>%filter()  
+updated_genelist <- genelisth1 %>% filter(!hap1%in%tophit_notloss$qseqid)  
 #write.table(updated_genelist,"genelisthap1_blast.txt",quote=FALSE,sep="\t",row.names=F)
 
 ```
@@ -181,13 +138,13 @@ summary_yloss_blast <-summarisebyregion(yloss_blast,n_blastconfirmedloss)
 
 yloss_partial <- slr_rename_h1((filter(hap1_yloss,hap1%in%tophit_partial$qseqid))) 
 summary_yloss_partial <-summarisebyregion(yloss_partial,n_partialloss)
-write.csv(yloss_partial,"yloss_partial_list.csv")
+#write.csv(yloss_partial,"yloss_partial_list.csv")
 ## create complete loss file
 complete_yloss<- slr_rename_h1((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid))) %>% filter(!hap1%in%tophit_partial$qseqid)
-write.csv(complete_yloss,"complete_yloss.csv")
+#write.csv(complete_yloss,"complete_yloss.csv")
 #sheet<-gs4_create("yloss_partial_list",sheets =yloss_partial)
 retained_on_y<-slr_rename_h1((hap1_yloss %>% filter(hap1%in%tophit_notloss$qseqid)))
-write.csv(retained_on_y,"retained_y.csv")
+#write.csv(retained_on_y,"retained_y.csv")
 
 
 mylist<-list(summary_total_pangenes,summary_yloss_pars,
@@ -214,41 +171,40 @@ e.g. NChap1_final_00000186 has 3 hits to hap2 - one with 100% id, one with 98, o
 control-ish (aka is there X loss?)
 
 ```{r}
-# hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
-# 
-# nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.))) 
-# 
-# onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
-# 
-# hasanortho2<-onlysyn2 %>% 
-#   filter(((hap1!=""|hap2!="")&salicifolius!=""))
-# hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
+hap2_nonsyn<-data.table::fread("pg_hap2_wide.txt")
+nsorths2<-hap2_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))
 
-#a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>% 
+onlysyn2<-hap2_nonsyn %>% filter(!(pgID%in%nsorths2$pgID)) # 30505 genes remain?
+#
+hasanortho2<-onlysyn2 %>%
+   filter(((hap1!=""|hap2!="")&salicifolius!=""))
+hap2_xloss<-hasanortho2 %>% filter(hap1=="" & hap2!="" & salicifolius!="")
+
+#a_xloss<-hap2_xloss %>% group_by(interpChr) %>% summarise(n=n()) %>%
 #  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
 
 #b_xloss<-hasanortho %>% group_by(interpChr) %>% summarise(n=n()) %>%
 #  filter(interpChr== "A1"|interpChr=="A2"| interpChr=="A4" #|interpChr=="Y1"|interpChr=="Y2")
 
-# slr_rename_h2<- function(x){mutate(x,
-#   region=if_else(interpChr=="Y1" & end<=64000000,"NewY1",
-#          if_else(interpChr =="Y1" & (end>64000000 & end<=272000000),"OldY1",
-#          if_else(interpChr =="Y1" & (end > 272000000 & end <= 344000000),"PAR1",
-#     if_else(interpChr=="Y2" & end<=121000000,"PAR2",
-#     if_else(interpChr=="Y2"& (end>121000000 & end<=159000000),"NewY2",
-#     if_else(interpChr=="Y2" & end>159000000, "OldY2",
-#     if_else(interpChr=="A1","A1",
-#     if_else(interpChr=="A2","A2",
-#     if_else(interpChr=="A4","A4",NA))))))))))}
+ slr_rename_h2<- function(x){mutate(x,
+   region=if_else(chr=="Y1" & end<=64000000,"NewY1",
+          if_else(chr =="Y1" & (end>64000000 & end<=272000000),"OldY1",
+          if_else(chr =="Y1" & (end > 272000000 & end <= 344000000),"PAR1",
+     if_else(chr=="Y2" & end<=121000000,"PAR2",
+     if_else(chr=="Y2"& (end>121000000 & end<=159000000),"NewY2",
+     if_else(chr=="Y2" & end>159000000, "OldY2",
+     if_else(chr=="A1","A1",
+     if_else(chr=="A2","A2",
+     if_else(chr=="A4","A4",NA))))))))))}
 
-# pars_xloss<-slr_rename_h2(hap2_xloss)
-# 
-# summary_xloss_pars<-summarisebyregion(pars_xloss,n_xloss)
-# 
-# total_pangenes2<-slr_rename_h2(hasanortho2)
-# 
-# summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
-# 
+pars_xloss<-slr_rename_h2(hap2_xloss)
+ 
+summary_xloss_pars<-summarisebyregion(pars_xloss,n_xloss)
+
+total_pangenes2<-slr_rename_h2(hasanortho2)
+ 
+summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
+ 
 # chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region") %>% 
 #    mutate(., propn=n_xloss/n_total)  %>%
 #    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
@@ -257,9 +213,10 @@ control-ish (aka is there X loss?)
 # #sheet2 <- gs4_create("xloss_summary_jun23_23", sheets = chrpropnPAR_xloss)
 #write_delim(chrpropnPAR_xloss,"summary_xloss.txt")
 ```
+
 ```{r}
 ## redo b/c totals look really weird!
-slr_rename_h2_fix<- function(x){mutate(x,
+slr_rename_h2<- function(x){mutate(x,
   region=if_else(chr=="Y1" & end<=64000000,"NewY1",
          if_else(chr =="Y1" & (end>64000000 & end<=272000000),"OldY1",
          if_else(chr =="Y1" & (end > 272000000 & end <= 344000000),"PAR1",
@@ -270,33 +227,23 @@ slr_rename_h2_fix<- function(x){mutate(x,
     if_else(chr=="A2","A2",
     if_else(chr=="A4","A4",NA))))))))))}
 
-pars_xloss_fix<-slr_rename_h2_fix(hap2_xloss)
+pars_xloss<-slr_rename_h2(hap2_xloss)
 
-summary_xloss_pars_fix<-summarisebyregion(pars_xloss_fix,n_xloss)
+summary_xloss_pars_fix<-summarisebyregion(pars_xloss,n_xloss)
 
-total_pangenes2_fix<-slr_rename_h2_fix(hasanortho2)
+total_pangenes2<-slr_rename_h2(hasanortho2)
 
-summary_total_pangenes2_fix<-summarisebyregion(total_pangenes2_fix,n_total)
+summary_total_pangenes2<-summarisebyregion(total_pangenes2,n_total)
 
-chrpropnPAR_xloss_fix<-full_join(summary_total_pangenes2_fix,summary_xloss_pars_fix,by="region") %>% 
+chrpropnPAR_xloss<-full_join(summary_total_pangenes2,summary_xloss_pars,by="region") %>%
    mutate(., propn=n_xloss/n_total)  %>%
    mutate(region = factor(region, levels=c("A1","A2","A4","PAR1","OldY1","NewY2","OldY2","NewY1","PAR2"))) 
 ## plot proportions 
 print(chrpropnPAR_xloss)
-print(chrpropnPAR_xloss_fix)
 
 
-
-slr_rename_h1_fix<-function(x){mutate(x,region=if_else(chr =="X" & end<=71000000,"PAR1",
-                        if_else(chr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(chr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(chr=="X" & end>367000000,"PAR2",
-                        if_else(chr=="A1","A1",
-                        if_else(chr=="A2","A2",
-                        if_else(chr=="A4","A4",NA))))))))}
-
-pars_yloss_fix<-slr_rename_h1_fix(hap1_yloss)
-summary_yloss_pars_fix<-summarisebyregion(pars_yloss_fix,n_yloss)
+pars_yloss<-slr_rename_h1(hap1_yloss)
+summary_yloss_pars<-summarisebyregion(pars_yloss,n_yloss)
 
 
 ```
