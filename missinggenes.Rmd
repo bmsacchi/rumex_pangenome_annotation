@@ -273,11 +273,11 @@ pie chart deprecated.
 ```
 
 ```{r}
-testtest<-dplyr::setdiff(total_pangenes$salicifolius,total_pangenes2$salicifolius)
+#testtest<-dplyr::setdiff(total_pangenes$salicifolius,total_pangenes2$salicifolius)
 ## 551 diff 
-testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
+#testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
 ## 481
-testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
+#testhap1<-dplyr::setdiff(total_pangenes$hap1,total_pangenes2$hap1)
 
 ```
 
@@ -346,7 +346,7 @@ ylossplot<-ggplot(filter(plotdata3,name == "propncompletelylost"|
   
 
 
-#library(cowplot)
+library(cowplot)
 mylegend<-cowplot::get_legend(ylossplot+theme(legend.position = 'bottom',
                                               legend.justification="centre",legend.title=element_blank()))
 
@@ -355,14 +355,14 @@ upper_row <- plot_grid(bothlossplot,ylossplot+theme(axis.title.y=element_blank()
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank(), 
         axis.line.y=element_blank()),ncol=2,align="h",axis="tb")
-plot_grid(upper_row,
+cowplot::plot_grid(upper_row,
          bottom_row, 
         labels = c('',''), 
         ncol = 1, rel_heights = c(5,1))
+#plot.new()
 
-
-ggsave("genelossmulti_july12.pdf",dpi = 300, width = 10, height = 4, units = "in")
-ggsave("genelossmulti_july12.jpg",dpi = 300, width = 10, height = 4, units = "in")
+#ggsave("genelossmulti_july12.pdf",dpi = 300, width = 10, height = 4, units = "in")
+#ggsave("genelossmulti_july12.jpg",dpi = 300, width = 10, height = 4, units = "in")
 
 ```
 purple at top
@@ -399,4 +399,4 @@ bothlossplot<-ggplot(filter(plotdata2,name == "n_blastconfirmedloss"|
   #theme(legend.position = "none")
 bothlossplot  
 ```
-
+###t
