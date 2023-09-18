@@ -1,0 +1,56 @@
+---
+title: "Non syntenic orthologs"
+output: html_notebook
+---
+## non syntenic orthos - chi square
+goal: are there more NS orths in some regions vs others? X v Y
+```{r}
+salpg<-data.table::fread("salicifolius_pangenes.txt")
+hap1pg<-data.table::fread("hap1_pangenes.txt") 
+hap2pg<-data.table::fread("hap2_pangenes.txt")
+
+sal_raw<-data.table::fread("pg_sal_wide.txt")
+sal1_nshap1<- sal_raw %>%  filter(grepl("\\*",hap1)) %>% filter(genome == "salicifolius")
+# 5876
+hap1_raw<-data.table::fread("pg_hap1_wide.txt")
+hap1_nshap1<- hap1_raw %>%  filter(grepl("\\*",hap1)) %>% filter(genome == "salicifolius")
+# 4016
+hap2_raw<-data.table::fread("pg_hap2_wide.txt")
+hap2_nshap1<- hap2_raw %>%  filter(grepl("\\*",hap1)) %>% filter(genome == "salicifolius")
+# 3577
+
+########
+
+sal_raw<-data.table::fread("pg_sal_wide.txt")
+sal1_nshap2<- sal_raw %>%  filter(grepl("\\*",hap2)) %>% filter(genome == "salicifolius")
+#5411                  
+
+summarypg<- salpg %>% filter(interpChr != "") %>%
+  group_by(flag,chr,genome) %>% summarise(n())
+## sanity check
+testpg<-salpg %>% filter(flag =="NSOrtho" & chr == "X" & genome =="hap1") %>% 
+# 4179
+## are these indep obs
+## no, may include separate NSorths - duplication
+## can get rid later? ughghghghgh
+
+```
+
+```{r}
+### how many sal orthos are NS re: X?
+# hap1nsorths<-hap1pg %>% 
+#   filter(flag == "NSOrtho" & interpChr == "X") #%>% 
+#   select(pgID,genome,og,id,chr,start,end) 
+# 
+# myspec<-tibble(
+#   .name = c("pgID","hap1","hap2","salicifolius","chr","og","start","end","ofID"),
+#   .value = c("pgID","id_hap1","id_hap2","id_salicifolius","chr","og","start","end","ofID"))
+# 
+# hap1nsorths %>% pivot_wider_spec(myspec)
+# 
+# df2<- df %>% group_by(pgID) %>%
+#   summarise(hap1= paste(na.omit(hap1), collapse = "|"), 
+#             hap2 = paste(na.omit(hap2),collapse= "|")) %>% ungroup() 
+# 
+# df2
+``` 
