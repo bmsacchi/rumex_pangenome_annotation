@@ -39,3 +39,6 @@ slr_rename_PARs<-function(x){mutate(x,
           if_else(genome == "hap2" & chr=="A1","A1",
           if_else(genome == "hap2" & chr=="A2","A2",
           if_else(genome == "hap2" & chr=="A4","A4",NA)))))))))))))))))}
+summarisebyregion<-function(x,y){ x %>% tibble() %>%
+    group_by(region) %>% summarise({{y}}:=n()) %>% 
+    filter(!is.na(region))}

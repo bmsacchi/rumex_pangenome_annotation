@@ -11,12 +11,8 @@ output:
 ### Setup and data cleaning
 Goal: obtain a list of 1-1 syntenic orthologs that are present in hap1 and sal, but not hap2 - as well as the opposite case. Particularly interested in the sex chromosomes.
 ```{r message=FALSE, warning=FALSE}
-#library(renv)
 library(tidyverse)
 library(vroom)
-#library(GENESPACE)
-#library(googlesheets4)
-#setwd("~/Dropbox/rumex_pangenome_annotation")
 ```
 #### raw files
 Loading in wide format from query_pangenes() for each possible reference and bed files.
@@ -36,8 +32,6 @@ Eliminating pangenome ID groups w non-syn orthogroup members. This is to get a m
 nsorths<-hap1_nonsyn %>% filter_all(any_vars(grepl("\\*",.)))  
 # filtering out any pgIDs in that set
 onlysyn<-hap1_raw %>% filter(!(pgID%in%nsorths$pgID)) # 31289 genes remain
-# same with salicifolius
-#onlysyn_sal<-sal_raw %>% filter(!(pgID%in%nsorths$pgID)) # 29906
 ```
 
 ### Gene loss on Y
@@ -49,36 +43,24 @@ hasanortho<-onlysyn %>%
   filter((hap1!=""|hap2!="")&salicifolius!="")
 
 notlost<-onlysyn %>% filter((hap1!="" & hap2!="" & salicifolius!=""))
-#write_delim(hasanortho,"denomgenelist.txt",delim="\t")
-#write_delim(hasanortho_justsal,"denomgenelist_salorth.txt",delim="\t")
-#write_csv(salorths, "denomgenelist_salorths.csv")
+
 hap1_yloss<-onlysyn %>% filter(hap1!="" & hap2=="" & salicifolius!="")  
 ```
 
-#### functions to label and summarise data in sex-linked regions
+#### label and summarise data in sex-linked regions
 Need to tabulate gene loss between PARs, oldx, newx, etc.
 ```{r}
-#######################################
-###--- functions----
-#######################################
-# major change from prev version: use chr instead of interpChr (for more accurate placement of SLRs)
-slr_rename_h1<-function(x){mutate(x,region=if_else(chr =="X" & end<=71000000,"PAR1",
-                        if_else(chr =="X" & (end>71000000 & end<=261000000),"OldX",
-                        if_else(chr=="X" & (end>261000000 & end<=367000000),"NewX", 
-                        if_else(chr=="X" & end>367000000,"PAR2",
-                        if_else(chr=="A1","A1",
-                        if_else(chr=="A2","A2",
-                        if_else(chr=="A4","A4",NA))))))))}
-yloss_pars<-slr_rename_h1(hap1_yloss)
+## load relabelling and summarising functions
+source("slr_rename.R")
+
+yloss_pars<-slr_rename(hap1_yloss)
 # summarize numbers by region
-summarisebyregion<-function(x,y){ x %>% tibble() %>%
-  group_by(region) %>% summarise({{y}}:=n()) %>% 
-  filter(!is.na(region))}
 summary_yloss_pars<-summarisebyregion(yloss_pars,n_yloss)
 
 total_pangenes<-slr_rename_h1(hasanortho)
 summary_total_pangenes<-summarisebyregion(total_pangenes,n_total)
 ```
+
 ### BLAST gene loss confirmation
 #### obtain list of y loss candidates to blast confirm
 These genes will be BLASTed to the whole hap2 genome.
@@ -132,7 +114,8 @@ updated_genelist <- genelisth1 %>% filter(!hap1%in%tophit_notloss$qseqid)
 
 #### obtain list of lost genes per region
 ```{r}
-yloss_blast<- slr_rename_h1((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid)))
+yloss_blast<- slr_rename((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid)))
+
 summary_yloss_blast <-summarisebyregion(yloss_blast,n_blastconfirmedloss)
 
 yloss_partial <- slr_rename_h1((filter(hap1_yloss,hap1%in%tophit_partial$qseqid))) 
@@ -142,17 +125,14 @@ summary_yloss_partial <-summarisebyregion(yloss_partial,n_partialloss)
 complete_yloss<- slr_rename_h1((hap1_yloss %>% filter(!hap1%in%tophit_notloss$qseqid))) %>% filter(!hap1%in%tophit_partial$qseqid)
 #write.csv(complete_yloss,"complete_yloss_Sept2023.csv")
 
-### adding genes not lost frmo blast result to list of genes with all 3 orthos ("no loss")
+### adding genes not lost from blast result to list of genes with all 3 orthos ("no loss")
 retained_blast<-slr_rename_h1((hap1_yloss %>% filter(hap1%in%tophit_notloss$qseqid)))
 notlost<-slr_rename_h1(notlost)
 retained_y<-rbind(notlost, retained_blast) %>% distinct()
 #write.csv(retained_y,"retained_genes_Sept2023.csv")
-# above file is just genes that failed blast loss confirmation1!!
-# needs to be aded to other total.
+ 
 
-#retained_on_y<-slr_rename_h1((hasanortho 
-
-
+## combining data frames
 mylist<-list(summary_total_pangenes,summary_yloss_pars,
              summary_yloss_blast,summary_yloss_partial)
 
