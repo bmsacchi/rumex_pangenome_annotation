@@ -8,8 +8,8 @@ goal: are there more NS orths in some regions vs others? X v Y
 
 #### Long format data
 ```{r}
-library(tidyverse)
-source("slr_rename.R")
+library(tidyverse) 
+source("slr_rename.R") 
 
 salpg_long<-data.table::fread("salicifolius_pangenes.txt")
 hap1pg_long<-data.table::fread("hap1_pangenes.txt") 
