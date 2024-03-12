@@ -11,15 +11,15 @@ syntenic_orthos_all.csv
 hap1sal_nohap2_syn.csv
 syntenic_orthos_all_synonly.csv
 syntenic_orthos_sal.csv
-**/*.nto
-**/*.ntf
-**/*.nsq
-**/*.not
-**/*.njs
-**/*.nin
-**/*.nhr
-**/*.ndb
-**/*.nto
+*.nto
+*.ntf
+*.nsq
+*.not
+*.njs
+*.nin
+*.nhr
+*.ndb
+*.nto
 NChap2_final.all.maker.transcripts.fasta
 NChap1_final.all.maker.transcripts.fasta
 NChap1_final.all.maker.transcripts.out.fasta
@@ -29,6 +29,7 @@ NChap1.out.fasta.fai
 NChap1.out.fasta
 NChap1_final.all.maker.transcripts.out.fasta
 test
+blastData/goodEhits_max1.txt
 <<<<<<< HEAD
 blast_h2genome.tsv
 =======
